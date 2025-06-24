@@ -1,0 +1,1 @@
+# UI Pages for Kitchen Quote Management System 

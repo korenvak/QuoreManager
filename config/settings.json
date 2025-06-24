@@ -1,0 +1,50 @@
+{
+  "app_name": "מערכת ניהול הצעות מטבח",
+  "app_version": "1.0.0",
+  "language": "he",
+  "rtl_mode": true,
+  "theme_mode": "light",
+  "window_width": 1400,
+  "window_height": 900,
+  "window_maximized": true,
+  "sidebar_expanded": false,
+  "font_family": "Heebo",
+  "font_size": 14,
+  "company_info": {
+    "name": "Panel Kitchens",
+    "phone": "03-1234567",
+    "email": "info@kitchenstudio.co.il",
+    "address": "רחוב הדקל 123, תל אביב"
+  },
+  "vat_rate": 18.0,
+  "quote_validity_days": 14,
+  "default_payment_terms": "תשלום 50% מראש, יתרה בהתקנה",
+  "auto_save_interval": 30,
+  "max_images_per_quote": 2,
+  "catalog_path": "",
+  "quotes_output_dir": "quotes",
+  "backup_dir": "backups",
+  "temp_dir": "temp",
+  "pdf_settings": {
+    "watermark_enabled": true,
+    "include_images": true,
+    "page_size": "A4",
+    "orientation": "portrait"
+  },
+  "session_timeout_minutes": 120,
+  "password_min_length": 6,
+  "require_password_change": false,
+  "max_login_attempts": 5,
+  "auto_backup_enabled": true,
+  "backup_interval_days": 1,
+  "max_backups_keep": 30,
+  "log_level": "INFO",
+  "log_file_max_size": 10485760,
+  "log_files_keep": 5,
+  "features": {
+    "email_integration": false,
+    "cloud_sync": false,
+    "advanced_reporting": true,
+    "multi_currency": false
+  }
+}

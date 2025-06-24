@@ -1,0 +1,1 @@
+# Utility functions for Kitchen Quote Management System 

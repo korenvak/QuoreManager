@@ -1,0 +1,430 @@
+/*
+ * Panel Kitchens - Modern Professional Theme
+ * High contrast, accessible, CRM-style design
+ * Optimized for Hebrew RTL layout
+ */
+
+/* -- Global Settings ---------------------------------------------------- */
+QWidget {
+    font-family: "Heebo", "Assistant", sans-serif;
+    color: #2D3748; /* Dark gray text for readability */
+    background-color: #FFFFFF; /* White background */
+    border: none;
+    font-size: 14px;
+}
+
+/* -- Main Window & Layout ----------------------------------------------- */
+QMainWindow, #main-window, #content-area {
+    background-color: #FFFFFF;
+}
+
+/* -- Sidebar Navigation ------------------------------------------------- */
+#sidebar {
+    background-color: #1A202C; /* Dark blue sidebar */
+    border-right: 1px solid #2D3748;
+}
+
+/* Sidebar Navigation Buttons */
+QPushButton[class="sidebar-nav"] {
+    color: #E2E8F0; /* Light gray text */
+    background-color: transparent;
+    text-align: right;
+    padding: 14px 20px;
+    margin: 2px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+}
+QPushButton[class="sidebar-nav"]:hover {
+    background-color: #2D3748;
+    color: #FFFFFF;
+}
+QPushButton[class="sidebar-nav"]:checked {
+    background-color: #3182CE; /* Primary blue for active */
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+/* -- Logo Section ------------------------------------------------------- */
+#logo-frame {
+    background-color: transparent;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+#logo-label {
+    background: transparent;
+    color: #FFFFFF;
+}
+
+/* -- Page Headers ------------------------------------------------------- */
+QLabel[class="title"] {
+    font-size: 28px;
+    font-weight: bold;
+    color: #2196F3; /* Light blue for titles */
+    margin-bottom: 8px;
+}
+QLabel#page-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2196F3; /* Light blue for page titles */
+    margin-bottom: 5px;
+}
+QLabel#page-subtitle {
+    font-size: 16px;
+    font-weight: bold; /* Make subtitles bold */
+    color: #2196F3; /* Light blue for subtitles */
+    margin-bottom: 20px;
+}
+QLabel#section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2196F3; /* Light blue for section titles */
+    margin-bottom: 12px;
+}
+
+/* -- Cards & Containers ------------------------------------------------- */
+QFrame[class="card"], QFrame#modern-card {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(135, 206, 250, 0.3); /* Light blue border */
+    border-radius: 15px; /* Even more rounded corners */
+    padding: 24px;
+    margin: 8px;
+}
+QFrame[class="card"]:hover {
+    border-color: rgba(135, 206, 250, 0.5); /* Light blue hover */
+}
+
+/* -- Statistics Cards --------------------------------------------------- */
+QFrame#stats-card {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(135, 206, 250, 0.3); /* Light blue border */
+    border-radius: 15px; /* Even more rounded corners */
+    padding: 20px;
+    margin: 8px;
+    min-height: 100px;
+}
+QLabel#stats-number {
+    font-size: 36px;
+    font-weight: bold;
+    color: #2196F3; /* Light blue for stats numbers */
+    margin-bottom: 4px;
+}
+QLabel#stats-label {
+    font-size: 14px;
+    color: #2196F3; /* Light blue for stats labels */
+    font-weight: 500;
+}
+
+/* -- Buttons ------------------------------------------------------------ */
+QPushButton {
+    background-color: #FFFFFF;
+    color: #2196F3; /* Light blue text */
+    border: 2px solid rgba(135, 206, 250, 0.4); /* Light blue border */
+    border-radius: 10px; /* Even more rounded corners */
+    padding: 12px 18px;
+    font-weight: 600;
+    font-size: 14px;
+    min-height: 40px; /* Increase button height more */
+    min-width: 100px; /* Ensure minimum width */
+}
+QPushButton:hover {
+    background-color: rgba(135, 206, 250, 0.1); /* Light blue background on hover */
+    border-color: rgba(135, 206, 250, 0.6);
+    color: #2196F3;
+}
+QPushButton:pressed {
+    background-color: rgba(135, 206, 250, 0.2);
+    border-color: rgba(135, 206, 250, 0.8);
+}
+/* Primary Button */
+QPushButton[class="primary"], QPushButton#primary-button {
+    background-color: #2196F3; /* Light blue primary */
+    color: #FFFFFF;
+    border: 2px solid #2196F3;
+    font-weight: bold;
+    min-height: 40px;
+    min-width: 100px;
+    border-radius: 10px; /* Even more rounded corners */
+}
+QPushButton[class="primary"]:hover, QPushButton#primary-button:hover {
+    background-color: #1976D2; /* Darker blue on hover */
+    border-color: #1976D2;
+}
+QPushButton[class="primary"]:pressed, QPushButton#primary-button:pressed {
+    background-color: #1565C0; /* Even darker on press */
+    border-color: #1565C0;
+}
+/* Table Button Styles - Override for consistency */
+QPushButton[class="table-button"] {
+    background-color: #2196F3;
+    color: #FFFFFF;
+    border: 1px solid #2196F3;
+    border-radius: 4px; /* Slightly more rounded corners */
+    padding: 8px 16px; /* Increased horizontal padding for wider buttons */
+    font-weight: 600;
+    font-size: 12px; /* Slightly larger font for better readability */
+    min-height: 35px; /* Minimum height for proper sizing */
+    max-height: 40px; /* Maximum height to prevent overflow */
+    min-width: 100px; /* Increased minimum width */
+    max-width: 150px; /* Increased maximum width */
+    vertical-align: middle; /* Center button in tall row */
+}
+QPushButton[class="table-button"]:hover {
+    background-color: #1976D2;
+    border-color: #1976D2;
+}
+QPushButton[class="table-button danger"] {
+    background-color: #F44336;
+    border-color: #F44336;
+}
+QPushButton[class="table-button danger"]:hover {
+    background-color: #D32F2F;
+    border-color: #D32F2F;
+}
+
+/* Remove overly restrictive height constraints for table buttons */
+QTableWidget QPushButton, QTableView QPushButton {
+    min-height: 35px !important;
+    max-height: 40px !important;
+    font-size: 12px !important;
+    padding: 8px 16px !important;
+    margin: 2px !important;
+}
+
+/* Specific override for any button in table cells */
+QTableWidget QWidget QPushButton, QTableView QWidget QPushButton {
+    min-height: 35px !important;
+    max-height: 40px !important;
+    font-size: 12px !important;
+    padding: 8px 16px !important;
+}
+/* Disabled Button */
+QPushButton:disabled {
+    background-color: #FFFFFF;
+    color: #A0AEC0;
+    border-color: rgba(135, 206, 250, 0.2);
+    border-radius: 10px; /* Consistent rounded corners */
+}
+
+/* -- Form Elements ------------------------------------------------------ */
+QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+    background-color: #FFFFFF;
+    color: #2D3748;
+    border: 2px solid rgba(135, 206, 250, 0.3); /* Light blue border */
+    border-radius: 10px; /* Even more rounded corners */
+    padding: 12px;
+    font-size: 14px;
+    selection-background-color: rgba(135, 206, 250, 0.2); /* Light blue selection */
+    min-height: 25px; /* Ensure proper height */
+}
+QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border-color: #2196F3; /* Light blue focus */
+    background-color: #FFFFFF;
+}
+QLineEdit:disabled, QTextEdit:disabled, QComboBox:disabled {
+    background-color: #FFFFFF;
+    color: #A0AEC0;
+    border-color: rgba(135, 206, 250, 0.2);
+}
+
+/* -- Tables ------------------------------------------------------------- */
+QTableView, QTableWidget {
+    background-color: #FFFFFF;
+    color: #2D3748;
+    border: 1px solid rgba(135, 206, 250, 0.3); /* Light blue border */
+    border-radius: 8px; /* More rounded corners */
+    gridline-color: rgba(135, 206, 250, 0.4); /* More visible light blue gridlines */
+    font-size: 14px;
+    alternate-background-color: rgba(135, 206, 250, 0.05);
+    selection-background-color: rgba(135, 206, 250, 0.2);
+    show-decoration-selected: 1;
+}
+QHeaderView::section {
+    background-color: rgba(135, 206, 250, 0.1); /* Light blue header */
+    color: #2D3748;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 20px 12px; /* Larger header padding */
+    border: none;
+    border-bottom: 2px solid rgba(135, 206, 250, 0.3);
+    border-right: 1px solid rgba(135, 206, 250, 0.3);
+    min-height: 70px; /* Much taller headers */
+}
+QHeaderView::section:last {
+    border-right: none;
+}
+QTableView::item, QTableWidget::item {
+    padding: 30px 8px; /* Much larger vertical padding for very tall rows */
+    color: #2D3748;
+    border-bottom: 2px solid rgba(135, 206, 250, 0.4); /* Strong light blue row borders */
+    border-right: 1px solid rgba(135, 206, 250, 0.3); /* Clear column borders */
+    background-color: #FFFFFF;
+    min-height: 80px; /* Much taller row height */
+}
+QTableView::item:alternate, QTableWidget::item:alternate {
+    background-color: rgba(135, 206, 250, 0.05); /* Very light blue alternate */
+}
+QTableView::item:selected, QTableWidget::item:selected {
+    background-color: rgba(135, 206, 250, 0.2); /* Light blue selection */
+    color: #2196F3;
+}
+QTableView::item:hover, QTableWidget::item:hover {
+    background-color: rgba(135, 206, 250, 0.1); /* Light blue hover */
+}
+
+/* Force table row heights for widgets inside tables */
+QTableWidget {
+    gridline-color: rgba(135, 206, 250, 0.4); /* Ensure grid lines are visible */
+}
+QTableWidget::item {
+    padding: 30px 8px; /* Much larger vertical padding for very tall rows */
+    border-bottom: 2px solid rgba(135, 206, 250, 0.4); /* Strong light blue borders */
+    border-right: 1px solid rgba(135, 206, 250, 0.3);
+}
+
+/* -- Step Indicators ---------------------------------------------------- */
+QLabel#step-number {
+    background-color: rgba(135, 206, 250, 0.3);
+    color: #4A5568;
+    border-radius: 16px;
+    padding: 8px;
+    font-weight: bold;
+    min-width: 32px;
+    min-height: 32px;
+}
+QWidget[status="active"] QLabel#step-number {
+    background-color: #2196F3; /* Light blue for active */
+    color: #FFFFFF;
+}
+QWidget[status="completed"] QLabel#step-number {
+    background-color: #4CAF50; /* Keep green for completed */
+    color: #FFFFFF;
+}
+QWidget[status="pending"] QLabel#step-number {
+    background-color: rgba(135, 206, 250, 0.2);
+    color: #A0AEC0;
+}
+QLabel#step-text {
+    color: #4A5568;
+    font-weight: 500;
+    font-size: 14px;
+}
+QWidget[status="active"] QLabel#step-text {
+    color: #2196F3; /* Light blue for active text */
+    font-weight: bold;
+}
+QWidget[status="pending"] QLabel#step-text {
+    color: #A0AEC0;
+}
+
+/* -- Scrollbars --------------------------------------------------------- */
+QScrollBar:vertical {
+    background: #FFFFFF;
+    width: 8px;
+    margin: 0;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical {
+    background: rgba(135, 206, 250, 0.5); /* Light blue scrollbar */
+    min-height: 20px;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover {
+    background: rgba(135, 206, 250, 0.7);
+}
+QScrollBar:horizontal {
+    background: #FFFFFF;
+    height: 8px;
+    margin: 0;
+    border-radius: 4px;
+}
+QScrollBar::handle:horizontal {
+    background: rgba(135, 206, 250, 0.5);
+    min-width: 20px;
+    border-radius: 4px;
+}
+QScrollBar::handle:horizontal:hover {
+    background: rgba(135, 206, 250, 0.7);
+}
+
+/* -- Special Elements --------------------------------------------------- */
+QFrame#progress-indicator-bar {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(135, 206, 250, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+#content-area {
+    background-color: #FFFFFF;
+}
+
+/* === Main Content Stack === */
+#content-stack {
+    font-size: 13px;
+    color: #888;
+}
+
+/* -- Radio Buttons and Checkboxes -------------------------------------- */
+QRadioButton, QCheckBox {
+    color: #2D3748;
+    font-size: 14px;
+    spacing: 8px;
+}
+QRadioButton::indicator, QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(135, 206, 250, 0.5);
+    border-radius: 8px; /* Even more rounded corners */
+}
+QRadioButton::indicator:checked, QCheckBox::indicator:checked {
+    background-color: #2196F3;
+    border-color: #2196F3;
+}
+QRadioButton::indicator {
+    border-radius: 9px;
+}
+
+/* -- Navigation and Tab specific styles --------------------------------- */
+QTabWidget::pane {
+    border: 1px solid rgba(135, 206, 250, 0.3);
+    border-radius: 12px; /* Even more rounded corners */
+    background-color: #FFFFFF;
+}
+QTabBar::tab {
+    background-color: rgba(135, 206, 250, 0.1);
+    color: #2D3748;
+    border: 1px solid rgba(135, 206, 250, 0.3);
+    padding: 12px 20px;
+    margin-right: 2px;
+    border-radius: 10px 10px 0 0; /* Even more rounded corners */
+    font-size: 14px;
+    font-weight: 600;
+    min-width: 120px;
+}
+QTabBar::tab:selected {
+    background-color: #2196F3;
+    color: #FFFFFF;
+    border-color: #2196F3;
+}
+QTabBar::tab:hover:!selected {
+    background-color: rgba(135, 206, 250, 0.2);
+}
+
+/* Group Box Titles */
+QGroupBox {
+    font-weight: bold;
+    font-size: 16px;
+    color: #2196F3;
+    border: 2px solid rgba(135, 206, 250, 0.3);
+    border-radius: 12px; /* Even more rounded corners */
+    margin-top: 12px;
+    padding-top: 15px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 8px 0 8px;
+    color: #2196F3;
+    font-weight: bold;
+} 

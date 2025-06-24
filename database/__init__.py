@@ -1,0 +1,1 @@
+# Database package for Kitchen Quote Management System 
