@@ -720,123 +720,427 @@ class QuoteWizard:
             self.create_catalog_item_card(item, idx)
     
     def create_catalog_item_card(self, item, idx):
-        """Create a compact item card for the catalog"""
-        # Get price safely
-        price = item.get('מחיר', 0)
-        if price is None:
-            price = 0
-        
-        # Item card with light blue hover effect
-        card_color = "#F9FAFB" if idx % 2 == 0 else "#FFFFFF"
+        """Create modern catalog item card with new format support"""
+        # Modern card styling with theme support
         card = ctk.CTkFrame(
-            self.catalog_table, 
-            fg_color=card_color, 
-            height=80,
+            self.catalog_table,
+            fg_color="#FFFFFF",
             border_width=1,
-            border_color="#E5E7EB"
+            border_color="#E1E8F7",
+            corner_radius=15
         )
-        card.pack(fill="x", padx=2, pady=1)
+        card.pack(fill="x", padx=5, pady=3)
         
-        # Add hover effect
+        # Add hover effects
         def on_enter(event):
             card.configure(border_color="#3B82F6")
         
         def on_leave(event):
-            card.configure(border_color="#E5E7EB")
+            card.configure(border_color="#E1E8F7")
         
         card.bind("<Enter>", on_enter)
         card.bind("<Leave>", on_leave)
         
-        # Main content
+        # Content frame
         content_frame = ctk.CTkFrame(card, fg_color="transparent")
-        content_frame.pack(fill="both", expand=True, padx=10, pady=8)
+        content_frame.pack(fill="x", padx=15, pady=12)
         
-        # Top row - name and price
-        top_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        top_frame.pack(fill="x")
+        # Header with item name and approval indicator
+        header_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        header_frame.pack(fill="x")
         
-        # Product name (truncated if too long)
-        name = item.get('שם מוצר', '')
-        if len(name) > 30:
-            name = name[:27] + "..."
-        
-        name_label = ctk.CTkLabel(
-            top_frame,
-            text=name,
-            font=ctk.CTkFont(family="Heebo", size=14, weight="bold"),
-            anchor="e"
-        )
-        name_label.pack(side="right", fill="x", expand=True)
-        
-        # Price
-        price_label = ctk.CTkLabel(
-            top_frame,
-            text=f"₪{float(price):,.0f}",
-            font=ctk.CTkFont(family="Heebo", size=14, weight="bold"),
-            text_color="#10B981",
-            anchor="w"
-        )
-        price_label.pack(side="left")
-        
-        # Bottom row - category and add button
-        bottom_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        bottom_frame.pack(fill="x", pady=(5, 0))
-        
-        # Category
-        category_label = ctk.CTkLabel(
-            bottom_frame,
-            text=item.get('קטגוריה', ''),
-            font=ctk.CTkFont(family="Heebo", size=12),
-            text_color="gray",
-            anchor="e"
-        )
-        category_label.pack(side="right", fill="x", expand=True)
-        
-        # Add button
+        # Left side - Add button
         add_btn = ctk.CTkButton(
-            bottom_frame,
-            text="הוסף +",
-            font=ctk.CTkFont(family="Heebo", size=12, weight="bold"),
+            header_frame,
+            text="הוסף",
             width=70,
-            height=25,
+            height=32,
+            font=ctk.CTkFont(family="Assistant", size=13, weight="bold"),
             fg_color="#3B82F6",
             hover_color="#2563EB",
-            command=lambda i=item: self.add_to_cart(i)
+            corner_radius=8,
+            command=lambda: self.add_to_cart_with_dialog(item)
         )
         add_btn.pack(side="left")
         
-        # Make whole card clickable
-        def add_item(event=None):
-            self.add_to_cart(item)
+        # Right side - Item info
+        info_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        info_frame.pack(side="right", fill="x", expand=True, padx=(10, 0))
         
-        card.bind("<Button-1>", add_item)
-        content_frame.bind("<Button-1>", add_item)
-        # Don't bind to labels as it interferes with button clicks
-
-    def add_to_cart(self, item):
+        # Item name with approval indicator
+        name_container = ctk.CTkFrame(info_frame, fg_color="transparent")
+        name_container.pack(fill="x", anchor="e")
+        
+        # Approval status (if required)
+        requires_approval = item.get('דורש אישור', False)
+        if requires_approval:
+            approval_indicator = ctk.CTkLabel(
+                name_container,
+                text="🔒",
+                font=ctk.CTkFont(size=14),
+                text_color="#EF4444"
+            )
+            approval_indicator.pack(side="left", padx=(0, 5))
+        
+        # Item name
+        item_name = ctk.CTkLabel(
+            name_container,
+            text=item.get('שם מוצר', 'פריט ללא שם'),
+            font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
+            text_color="#1F2937",
+            anchor="e"
+        )
+        item_name.pack(side="right", fill="x", expand=True)
+        
+        # Price and unit information
+        price_info_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+        price_info_frame.pack(fill="x", anchor="e", pady=(3, 0))
+        
+        price = item.get('מחיר', 0)
+        units = item.get('יחידה', 'יח׳')
+        
+        # Price display with unit info
+        if price and price > 0:
+            price_text = f"₪{price:,.0f} / {units}"
+            price_color = "#10B981"  # Green for available pricing
+        else:
+            price_text = f"מחיר מותאם / {units}"
+            price_color = "#F59E0B"  # Orange for custom pricing
+        
+        price_label = ctk.CTkLabel(
+            price_info_frame,
+            text=price_text,
+            font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=price_color,
+            anchor="e"
+        )
+        price_label.pack(anchor="e")
+        
+        # Unit explanation
+        if units == 'מ"א':
+            unit_text = "מטר אורך - כמות עשרונית"
+            unit_color = "#8B5CF6"  # Purple for linear meters
+        elif units == 'יח׳':
+            unit_text = "יחידות - כמות שלמה"
+            unit_color = "#3B82F6"  # Blue for pieces
+        else:
+            unit_text = f"יחידה: {units}"
+            unit_color = "#6B7280"  # Gray for other units
+        
+        unit_explanation = ctk.CTkLabel(
+            price_info_frame,
+            text=unit_text,
+            font=ctk.CTkFont(family="Assistant", size=12),
+            text_color=unit_color,
+            anchor="e"
+        )
+        unit_explanation.pack(anchor="e")
+        
+        # Category
+        category_label = ctk.CTkLabel(
+            info_frame,
+            text=f"קטגוריה: {item.get('קטגוריה', 'ללא קטגוריה')}",
+            font=ctk.CTkFont(family="Assistant", size=12),
+            text_color="#6B7280",
+            anchor="e"
+        )
+        category_label.pack(anchor="e", pady=(2, 0))
+        
+        # Comments (if available and not too long)
+        comments = item.get('תיאור', '').strip()
+        if comments and len(comments) < 100:  # Only show short comments
+            comments_label = ctk.CTkLabel(
+                info_frame,
+                text=f"הערות: {comments}",
+                font=ctk.CTkFont(family="Assistant", size=11, slant="italic"),
+                text_color="#6B7280",
+                anchor="e",
+                wraplength=300
+            )
+            comments_label.pack(anchor="e", pady=(2, 0))
+        
+        # Make card clickable
+        def add_item_click(event=None):
+            self.add_to_cart_with_dialog(item)
+        
+        # Bind click events (but not to button)
+        card.bind("<Button-1>", add_item_click)
+        content_frame.bind("<Button-1>", add_item_click)
+        header_frame.bind("<Button-1>", add_item_click)
+        info_frame.bind("<Button-1>", add_item_click)
+    
+    def add_to_cart_with_dialog(self, item):
+        """Add item to cart with quantity and custom price dialog if needed"""
+        try:
+            units = item.get('יחידה', 'יח׳')
+            price = item.get('מחיר', 0)
+            requires_approval = item.get('דורש אישור', False)
+            
+            # Check approval permissions
+            if requires_approval:
+                user_role = self.current_user.get('role', 'viewer')
+                if user_role not in ['admin', 'manager']:
+                    # Force save as draft workflow will be handled in finish_wizard
+                    pass  # Continue to allow adding, restriction enforced at save time
+            
+            # Create dialog for quantity (and custom price if needed)
+            dialog = ctk.CTkToplevel(self.dialog)
+            dialog.title("הוסף פריט לסל")
+            dialog.geometry("400x500")
+            dialog.transient(self.dialog)
+            dialog.grab_set()
+            
+            # Center dialog
+            dialog.geometry("+%d+%d" % (
+                self.dialog.winfo_rootx() + 50,
+                self.dialog.winfo_rooty() + 50
+            ))
+            
+            # Main frame
+            main_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+            main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Title
+            title_label = ctk.CTkLabel(
+                main_frame,
+                text="הוסף פריט לסל",
+                font=ctk.CTkFont(family="Assistant", size=20, weight="bold"),
+                text_color="#1F2937"
+            )
+            title_label.pack(pady=(0, 20))
+            
+            # Item info card
+            info_card = ctk.CTkFrame(main_frame, fg_color="#F8FAFC", corner_radius=12)
+            info_card.pack(fill="x", pady=(0, 20))
+            
+            # Item name
+            ctk.CTkLabel(
+                info_card,
+                text=item.get('שם מוצר', 'פריט'),
+                font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
+                anchor="center"
+            ).pack(pady=15)
+            
+            # Approval warning
+            if requires_approval:
+                warning_frame = ctk.CTkFrame(main_frame, fg_color="#FEF2F2", corner_radius=8)
+                warning_frame.pack(fill="x", pady=(0, 15))
+                
+                ctk.CTkLabel(
+                    warning_frame,
+                    text="⚠️ פריט זה דורש אישור מנהל",
+                    font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+                    text_color="#EF4444"
+                ).pack(pady=10)
+                
+                user_role = self.current_user.get('role', 'viewer')
+                if user_role not in ['admin', 'manager']:
+                    ctk.CTkLabel(
+                        warning_frame,
+                        text="ההצעה תישמר כטיוטה לאישור",
+                        font=ctk.CTkFont(family="Assistant", size=12),
+                        text_color="#DC2626"
+                    ).pack(pady=(0, 10))
+            
+            # Quantity input
+            qty_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            qty_frame.pack(fill="x", pady=(0, 15))
+            
+            ctk.CTkLabel(
+                qty_frame,
+                text=f"כמות ({units}):",
+                font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+                anchor="e"
+            ).pack(anchor="e")
+            
+            # Unit-specific quantity input
+            quantity_var = ctk.StringVar(value="1")
+            
+            if units == 'יח׳':
+                # Integer only for pieces
+                qty_entry = ctk.CTkEntry(
+                    qty_frame,
+                    textvariable=quantity_var,
+                    placeholder_text="הזן כמות שלמה (1, 2, 3...)",
+                    font=ctk.CTkFont(family="Assistant", size=14),
+                    height=40
+                )
+                help_text = "כמות שלמה בלבד (יחידות)"
+            else:
+                # Float allowed for linear meters
+                qty_entry = ctk.CTkEntry(
+                    qty_frame,
+                    textvariable=quantity_var,
+                    placeholder_text="הזן כמות (1.5, 2.25...)",
+                    font=ctk.CTkFont(family="Assistant", size=14),
+                    height=40
+                )
+                help_text = "ניתן להזין כמות עשרונית (מטר אורך)"
+            
+            qty_entry.pack(fill="x", pady=(5, 0))
+            
+            ctk.CTkLabel(
+                qty_frame,
+                text=help_text,
+                font=ctk.CTkFont(family="Assistant", size=11),
+                text_color="#6B7280"
+            ).pack(anchor="e", pady=(2, 0))
+            
+            # Custom price (if needed)
+            custom_price_var = None
+            if not price or price <= 0:
+                price_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+                price_frame.pack(fill="x", pady=(0, 15))
+                
+                ctk.CTkLabel(
+                    price_frame,
+                    text="מחיר מותאם (₪):",
+                    font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+                    anchor="e"
+                ).pack(anchor="e")
+                
+                custom_price_var = ctk.StringVar()
+                price_entry = ctk.CTkEntry(
+                    price_frame,
+                    textvariable=custom_price_var,
+                    placeholder_text="הזן מחיר",
+                    font=ctk.CTkFont(family="Assistant", size=14),
+                    height=40
+                )
+                price_entry.pack(fill="x", pady=(5, 0))
+                
+                ctk.CTkLabel(
+                    price_frame,
+                    text="מחיר לפי יחידה",
+                    font=ctk.CTkFont(family="Assistant", size=11),
+                    text_color="#6B7280"
+                ).pack(anchor="e", pady=(2, 0))
+            
+            # Buttons
+            button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            button_frame.pack(fill="x", pady=(20, 0))
+            
+            def add_item():
+                try:
+                    # Validate quantity
+                    qty_text = quantity_var.get().strip()
+                    if not qty_text:
+                        messagebox.showerror("שגיאה", "יש להזין כמות")
+                        return
+                    
+                    # Parse quantity based on unit type
+                    if units == 'יח׳':
+                        # Integer only
+                        try:
+                            quantity = int(float(qty_text))  # Parse as float then convert to int
+                            if quantity <= 0:
+                                raise ValueError()
+                        except ValueError:
+                            messagebox.showerror("שגיאה", "יש להזין כמות שלמה חיובית")
+                            return
+                    else:
+                        # Float allowed
+                        try:
+                            quantity = float(qty_text)
+                            if quantity <= 0:
+                                raise ValueError()
+                        except ValueError:
+                            messagebox.showerror("שגיאה", "יש להזין כמות חיובית")
+                            return
+                    
+                    # Get final price
+                    final_price = price
+                    if custom_price_var:
+                        try:
+                            custom_price = float(custom_price_var.get().strip() or "0")
+                            if custom_price <= 0:
+                                messagebox.showerror("שגיאה", "יש להזין מחיר חיובי")
+                                return
+                            final_price = custom_price
+                        except ValueError:
+                            messagebox.showerror("שגיאה", "יש להזין מחיר תקין")
+                            return
+                    
+                    # Add to cart
+                    self.add_item_to_cart(item, quantity, final_price)
+                    dialog.destroy()
+                    
+                except Exception as e:
+                    messagebox.showerror("שגיאה", f"שגיאה בהוספת הפריט: {e}")
+            
+            def cancel():
+                dialog.destroy()
+            
+            # Add button
+            add_button = ctk.CTkButton(
+                button_frame,
+                text="הוסף לסל",
+                font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+                height=40,
+                fg_color="#3B82F6",
+                hover_color="#2563EB",
+                command=add_item
+            )
+            add_button.pack(side="right", padx=(10, 0))
+            
+            # Cancel button
+            cancel_button = ctk.CTkButton(
+                button_frame,
+                text="ביטול",
+                font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+                height=40,
+                fg_color="#6B7280",
+                hover_color="#4B5563",
+                command=cancel
+            )
+            cancel_button.pack(side="right")
+            
+            # Focus on quantity entry
+            qty_entry.focus()
+            
+        except Exception as e:
+            messagebox.showerror("שגיאה", f"שגיאה בפתיחת דיאלוג: {e}")
+    
+    def add_item_to_cart(self, item, quantity, final_price):
+        """Add item to cart with specified quantity and price"""
         # Check if already in cart
+        item_name = item.get('שם מוצר', item.get('name', 'פריט'))
+        item_category = item.get('קטגוריה', item.get('category', ''))
+        
         for cart_item in self.selected_items:
-            if cart_item['name'] == item.get('שם מוצר') and cart_item['category'] == item.get('קטגוריה'):
-                cart_item['quantity'] += 1
-                cart_item['כמות'] += 1
+            if (cart_item.get('שם מוצר') == item_name and 
+                cart_item.get('קטגוריה') == item_category):
+                # Update existing item
+                cart_item['כמות'] += quantity
+                cart_item['quantity'] += quantity
+                # If this item has custom pricing, update the price
+                if final_price != item.get('מחיר', 0):
+                    cart_item['מחיר'] = final_price
+                    cart_item['price'] = final_price
+                    cart_item['custom_price'] = True
                 self.update_cart()
                 self.update_navigation_buttons()
                 return
+        
         # Add new item with both Hebrew and English keys
         formatted_item = {
             'שם מוצר': item.get('שם מוצר', item.get('name', 'פריט')),
             'name': item.get('שם מוצר', item.get('name', 'פריט')),
             'קטגוריה': item.get('קטגוריה', item.get('category', '')),
             'category': item.get('קטגוריה', item.get('category', '')),
-            'כמות': item.get('כמות', item.get('quantity', 1)),
-            'quantity': item.get('כמות', item.get('quantity', 1)),
-            'מחיר': item.get('מחיר', item.get('price', 0)),
-            'price': item.get('מחיר', item.get('price', 0)),
+            'כמות': quantity,
+            'quantity': quantity,
+            'מחיר': final_price,
+            'price': final_price,
             'תיאור': item.get('תיאור', item.get('description', '')),
             'description': item.get('תיאור', item.get('description', '')),
             'יחידה': item.get('יחידה', item.get('unit', 'יח׳')),
-            'unit': item.get('יחידה', item.get('unit', 'יח׳'))
+            'unit': item.get('יחידה', item.get('unit', 'יח׳')),
+            'דורש אישור': item.get('דורש אישור', False),
+            'requires_approval': item.get('דורש אישור', False),
+            'custom_price': final_price != item.get('מחיר', 0)  # Track if price was customized
         }
+        
         self.selected_items.append(formatted_item)
         self.update_cart()
         self.update_navigation_buttons()
@@ -912,35 +1216,74 @@ class QuoteWizard:
                     row.grid_columnconfigure(3, weight=2)
                     row.grid_columnconfigure(4, weight=0)
                     
-                    # Quantity (editable)
-                    qty_var = ctk.StringVar(value=str(item['quantity']))
+                    # Quantity (editable with unit awareness)
+                    item_units = item.get('יחידה', 'יח׳')
+                    qty_value = item.get('quantity', 1)
+                    
+                    # Format quantity based on unit type
+                    if item_units == 'יח׳':
+                        qty_display = str(int(qty_value))  # Integer for pieces
+                    else:
+                        qty_display = f"{qty_value:.2f}".rstrip('0').rstrip('.')  # Clean decimal for meters
+                    
+                    qty_var = ctk.StringVar(value=qty_display)
                     
                     # Create entry first
                     qty_entry = ctk.CTkEntry(
                         row, 
                         textvariable=qty_var, 
-                        width=60, 
+                        width=80, 
                         height=30,
                         justify="center",
-                        font=ctk.CTkFont(family="Heebo", size=14, weight="bold")
+                        font=ctk.CTkFont(family="Assistant", size=14, weight="bold")
                     )
                     qty_entry.grid(row=0, column=0, padx=8, pady=8)
                     
-                    # Then set up the trace with proper closure
-                    def create_qty_handler(index):
+                    # Unit indicator
+                    unit_color = "#8B5CF6" if item_units == 'מ"א' else "#3B82F6"
+                    unit_badge = ctk.CTkLabel(
+                        row,
+                        text=item_units,
+                        font=ctk.CTkFont(family="Assistant", size=10, weight="bold"),
+                        text_color=unit_color,
+                        width=30
+                    )
+                    unit_badge.grid(row=0, column=0, padx=(60, 8), pady=8, sticky="e")
+                    
+                    # Then set up the trace with proper closure and unit validation
+                    def create_qty_handler(index, units):
                         def on_qty_change(*args):
                             try:
-                                val = int(qty_var.get())
-                                if val < 1:
-                                    val = 1
+                                qty_text = qty_var.get().strip()
+                                if not qty_text:
+                                    return
+                                
+                                if units == 'יח׳':
+                                    # Integer only for pieces
+                                    val = int(float(qty_text))
+                                    if val < 1:
+                                        val = 1
+                                    qty_var.set(str(val))  # Update display
+                                else:
+                                    # Float allowed for meters
+                                    val = float(qty_text)
+                                    if val <= 0:
+                                        val = 0.1
+                                
                                 self.selected_items[index]['quantity'] = val
+                                self.selected_items[index]['כמות'] = val
                                 self.update_cart()
                                 self.update_navigation_buttons()
                             except ValueError:
-                                pass
+                                # Reset to valid value
+                                if units == 'יח׳':
+                                    qty_var.set(str(int(self.selected_items[index]['quantity'])))
+                                else:
+                                    current_val = self.selected_items[index]['quantity']
+                                    qty_var.set(f"{current_val:.2f}".rstrip('0').rstrip('.'))
                         return on_qty_change
                     
-                    qty_var.trace("w", create_qty_handler(idx))
+                    qty_var.trace("w", create_qty_handler(idx, item_units))
                     
                     # Name
                     font_row = ctk.CTkFont(family="Heebo", size=15, weight="normal")

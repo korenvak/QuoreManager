@@ -219,61 +219,163 @@ class CatalogPage:
             self.create_item_card(item)
     
     def create_item_card(self, item):
-        """Create item card"""
-        card = ctk.CTkFrame(self.catalog_container, border_width=1, border_color="#E5E7EB")
+        """Create modern item card with new format support"""
+        # Modern card with white background and blue border
+        card = ctk.CTkFrame(
+            self.catalog_container, 
+            fg_color="#FFFFFF",
+            border_width=1, 
+            border_color="#E1E8F7",
+            corner_radius=15
+        )
         card.pack(fill="x", padx=10, pady=5)
+        
+        # Hover effect
+        def on_enter(event):
+            card.configure(border_color="#3B82F6")
+        
+        def on_leave(event):
+            card.configure(border_color="#E1E8F7")
+        
+        card.bind("<Enter>", on_enter)
+        card.bind("<Leave>", on_leave)
         
         # Content
         content_frame = ctk.CTkFrame(card, fg_color="transparent")
         content_frame.pack(fill="x", padx=20, pady=15)
         
-        # Item info
-        info_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        info_frame.pack(side="right", fill="x", expand=True)
+        # Header with name and approval indicator
+        header_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        header_frame.pack(fill="x", anchor="e")
         
-        # Name
+        # Item name (main title)
+        name_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        name_frame.pack(side="right", fill="x", expand=True)
+        
         name_label = ctk.CTkLabel(
-            info_frame,
+            name_frame,
             text=item.get('שם מוצר', 'פריט ללא שם'),
-            font=ctk.CTkFont(family="Heebo", size=16, weight="bold"),
+            font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
+            text_color="#1F2937",
             anchor="e"
         )
         name_label.pack(anchor="e")
         
-        # Price
+        # Approval indicator (if required)
+        requires_approval = item.get('דורש אישור', False)
+        if requires_approval:
+            approval_label = ctk.CTkLabel(
+                header_frame,
+                text="🔒",
+                font=ctk.CTkFont(size=16),
+                text_color="#EF4444"
+            )
+            approval_label.pack(side="left", padx=(0, 10))
+            
+            # Approval tooltip
+            approval_text = ctk.CTkLabel(
+                header_frame,
+                text="דורש אישור מנהל",
+                font=ctk.CTkFont(family="Assistant", size=12),
+                text_color="#EF4444"
+            )
+            approval_text.pack(side="left")
+        
+        # Price and unit info
+        price_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        price_frame.pack(fill="x", anchor="e", pady=(5, 0))
+        
         price = item.get('מחיר', 0)
+        units = item.get('יחידה', 'יח׳')
+        
+        if price and price > 0:
+            # Standard pricing
+            price_text = f"₪{price:,.0f} / {units}"
+            price_color = "#10B981"  # Green for available pricing
+        else:
+            # Custom pricing required
+            price_text = f"מחיר לפי הזמנה / {units}"
+            price_color = "#F59E0B"  # Orange for custom pricing
+        
         price_label = ctk.CTkLabel(
-            info_frame,
-            text=f"מחיר: ₪{price}",
-            font=ctk.CTkFont(family="Heebo", size=14),
+            price_frame,
+            text=price_text,
+            font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=price_color,
             anchor="e"
         )
         price_label.pack(anchor="e")
         
-        # Description
-        description = item.get('תיאור', '')
-        if description:
-            desc_label = ctk.CTkLabel(
-                info_frame,
-                text=f"הערות: {description}",
-                font=ctk.CTkFont(family="Heebo", size=13),
-                anchor="e"
+        # Unit type explanation
+        if units == 'מ"א':
+            unit_explanation = "מטר אורך - ניתן להזין כמות עשרונית"
+        elif units == 'יח׳':
+            unit_explanation = "יחידות - כמות שלמה בלבד"
+        else:
+            unit_explanation = f"יחידת מידה: {units}"
+        
+        unit_label = ctk.CTkLabel(
+            price_frame,
+            text=unit_explanation,
+            font=ctk.CTkFont(family="Assistant", size=12),
+            text_color="#6B7280",
+            anchor="e"
+        )
+        unit_label.pack(anchor="e", pady=(2, 0))
+        
+        # Comments (if available)
+        comments = item.get('תיאור', '').strip()
+        if comments:
+            comments_label = ctk.CTkLabel(
+                content_frame,
+                text=f"הערות: {comments}",
+                font=ctk.CTkFont(family="Assistant", size=12, slant="italic"),
+                text_color="#6B7280",
+                anchor="e",
+                wraplength=400
             )
-            desc_label.pack(anchor="e")
+            comments_label.pack(anchor="e", pady=(5, 0))
+        
+        # Add button (modern style)
+        button_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        button_frame.pack(fill="x", pady=(10, 0))
+        
+        # Use theme manager for modern button
+        from styling.theme_system import ModernThemeManager
+        from config.settings import SettingsManager
+        settings_manager = SettingsManager()
+        theme_manager = ModernThemeManager(settings_manager)
+        
+        add_button = theme_manager.create_modern_button(
+            button_frame,
+            text="הוסף לסל",
+            style="primary",
+            size="medium",
+            command=lambda: self.add_to_quote_wizard(item)
+        )
+        add_button.pack(side="left")
         
         # Edit button (if user has permission)
         if self.has_permission('edit_catalog'):
-            edit_button = ctk.CTkButton(
-                content_frame,
+            edit_button = theme_manager.create_modern_button(
+                button_frame,
                 text="ערוך",
-                width=60,
-                height=30,
-                font=ctk.CTkFont(family="Heebo", size=12),
-                fg_color="#3B82F6",
-                hover_color="#2563EB",
-                command=lambda i=item: self.edit_item(i)
+                style="outline", 
+                size="medium",
+                command=lambda: self.edit_item(item)
             )
-            edit_button.pack(pady=2)
+            edit_button.pack(side="left", padx=(10, 0))
+    
+    def add_to_quote_wizard(self, item):
+        """Add item to quote wizard (placeholder for integration)"""
+        from tkinter import messagebox
+        messagebox.showinfo(
+            "הוסף לסל",
+            f"פריט '{item.get('שם מוצר', 'פריט')}' יתווסף לסל\n"
+            f"יחידה: {item.get('יחידה', 'יח׳')}\n"
+            f"מחיר: {'₪' + str(item.get('מחיר', 0)) if item.get('מחיר', 0) > 0 else 'מחיר לפי הזמנה'}\n"
+            f"דורש אישור: {'כן' if item.get('דורש אישור', False) else 'לא'}"
+        )
     
     def has_permission(self, permission: str) -> bool:
         """Check if user has specific permission"""
