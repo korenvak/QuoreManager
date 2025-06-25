@@ -230,6 +230,21 @@ class DraftsPage:
                     # Get draft state for additional info
                     draft_state = draft.state if hasattr(draft, 'state') else draft.get('state', {})
                     
+                    # Check if draft requires manager approval
+                    requires_approval = False
+                    approval_items = []
+                    if isinstance(draft_state, dict):
+                        requires_approval = draft_state.get('requires_manager_approval', False)
+                        approval_items = draft_state.get('approval_required_items', [])
+                    elif isinstance(draft_state, str):
+                        try:
+                            import json
+                            parsed_state = json.loads(draft_state)
+                            requires_approval = parsed_state.get('requires_manager_approval', False)
+                            approval_items = parsed_state.get('approval_required_items', [])
+                        except:
+                            pass
+                    
                     draft_info = {
                         'id': draft_id,
                         'customer_name': customer_name,
@@ -239,7 +254,9 @@ class DraftsPage:
                         'age_days': age_days,
                         'can_edit': can_edit,
                         'draft_data': draft_state,
-                        'age_group': 'today' if age_days == 0 else 'older'
+                        'age_group': 'today' if age_days == 0 else 'older',
+                        'requires_approval': requires_approval,
+                        'approval_items': approval_items
                     }
                     
                     processed_drafts.append(draft_info)
@@ -469,6 +486,39 @@ class DraftsPage:
                     anchor="e"
                 )
                 permission_label.pack(anchor="e", pady=(5, 0))
+            
+            # Approval requirement message
+            if draft.get('requires_approval', False):
+                approval_frame = ctk.CTkFrame(content_frame, fg_color="#FEF2F2", corner_radius=8)
+                approval_frame.pack(fill="x", pady=(10, 0))
+                
+                # Warning icon and title
+                warning_header = ctk.CTkFrame(approval_frame, fg_color="transparent")
+                warning_header.pack(fill="x", padx=10, pady=(8, 5))
+                
+                warning_label = ctk.CTkLabel(
+                    warning_header,
+                    text="⚠️ ממתין לאישור מנהל",
+                    font=ctk.CTkFont(family="Assistant", size=12, weight="bold"),
+                    text_color="#DC2626",
+                    anchor="e"
+                )
+                warning_label.pack(anchor="e")
+                
+                # Show approval items if available
+                if draft.get('approval_items'):
+                    items_text = ", ".join(draft['approval_items'][:2])  # Show first 2 items
+                    if len(draft['approval_items']) > 2:
+                        items_text += f" ועוד {len(draft['approval_items']) - 2}"
+                    
+                    items_label = ctk.CTkLabel(
+                        approval_frame,
+                        text=f"פריטים דורשים אישור: {items_text}",
+                        font=ctk.CTkFont(family="Assistant", size=10),
+                        text_color="#B91C1C",
+                        anchor="e"
+                    )
+                    items_label.pack(anchor="e", padx=10, pady=(0, 8))
                 
         except Exception as e:
             import logging

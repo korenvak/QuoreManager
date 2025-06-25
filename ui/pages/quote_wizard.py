@@ -2312,37 +2312,61 @@ class QuoteWizard:
                     f"ההנחה המקסימלית המותרת לך היא {user_max_discount}%."
                 )
                 return
+
+            # Check if any items require approval and store this information
+            approval_required_items = []
+            for item in self.selected_items:
+                # Get original catalog item to check approval status
+                item_name = item.get('שם מוצר', item.get('name', ''))
+                catalog_handler = CatalogHandler()
+                catalog_items = catalog_handler.get_catalog_items()
+                
+                # Find matching catalog item
+                catalog_item = None
+                for cat_item in catalog_items:
+                    if cat_item.get('שם מוצר') == item_name:
+                        catalog_item = cat_item
+                        break
+                
+                # Check if this item requires approval
+                if catalog_item and catalog_item.get('דורש אישור', False):
+                    approval_required_items.append(item_name)
             
             # Prepare draft state with consistent item format
             draft_items = []
             for item in self.selected_items:
-                draft_items.append({
-                    '\u05e9\u05dd \u05de\u05d5\u05e6\u05e8': item.get('\u05e9\u05dd \u05de\u05d5\u05e6\u05e8', item.get('name', '\u05e4\u05e8\u05d9\u05d8')),
-                    'name': item.get('\u05e9\u05dd \u05de\u05d5\u05e6\u05e8', item.get('name', '\u05e4\u05e8\u05d9\u05d8')),
-                    '\u05e7\u05d8\u05d2\u05d5\u05e8\u05d9\u05d4': item.get('\u05e7\u05d8\u05d2\u05d5\u05e8\u05d9\u05d4', item.get('category', '')),
-                    'category': item.get('\u05e7\u05d8\u05d2\u05d5\u05e8\u05d9\u05d4', item.get('category', '')),
-                    '\u05db\u05de\u05d5\u05ea': item.get('\u05db\u05de\u05d5\u05ea', item.get('quantity', 1)),
-                    'quantity': item.get('\u05db\u05de\u05d5\u05ea', item.get('quantity', 1)),
-                    '\u05de\u05d7\u05d9\u05e8': item.get('\u05de\u05d7\u05d9\u05e8', item.get('price', 0)),
-                    'price': item.get('\u05de\u05d7\u05d9\u05e8', item.get('price', 0)),
-                    '\u05ea\u05d9\u05d0\u05d5\u05e8': item.get('\u05ea\u05d9\u05d0\u05d5\u05e8', item.get('description', '')),
-                    'description': item.get('\u05ea\u05d9\u05d0\u05d5\u05e8', item.get('description', '')),
-                    '\u05d9\u05d7\u05d9\u05d3\u05d4': item.get('\u05d9\u05d7\u05d9\u05d3\u05d4', item.get('unit', '\u05d9\u05d7\u05f3')),
-                    'unit': item.get('\u05d9\u05d7\u05d9\u05d3\u05d4', item.get('unit', '\u05d9\u05d7\u05f3'))
-                })
-            # Ensure all values in quote_data are serializable
-            serializable_quote_data = {}
-            for k, v in self.quote_data.items():
-                if isinstance(v, (datetime)):
-                    serializable_quote_data[k] = v.isoformat()
-                else:
-                    serializable_quote_data[k] = v
+                draft_item = {
+                    'שם מוצר': item.get('שם מוצר', item.get('name', '')),
+                    'name': item.get('שם מוצר', item.get('name', '')),
+                    'קטגוריה': item.get('קטגוריה', item.get('category', '')),
+                    'category': item.get('קטגוריה', item.get('category', '')),
+                    'כמות': item.get('כמות', item.get('quantity', 1)),
+                    'quantity': item.get('כמות', item.get('quantity', 1)),
+                    'מחיר': item.get('מחיר', item.get('price', 0)),
+                    'price': item.get('מחיר', item.get('price', 0)),
+                    'תיאור': item.get('תיאור', item.get('description', '')),
+                    'description': item.get('תיאור', item.get('description', '')),
+                    'יחידה': item.get('יחידה', item.get('unit', 'יח׳')),
+                    'unit': item.get('יחידה', item.get('unit', 'יח׳')),
+                    'דורש אישור': item.get('דורש אישור', False),
+                    'requires_approval': item.get('דורש אישור', False)
+                }
+                draft_items.append(draft_item)
+            
+            # Create serializable quote data
+            serializable_quote_data = self.quote_data.copy()
+            if 'customer_data' in serializable_quote_data:
+                del serializable_quote_data['customer_data']
+            
             draft_state = {
                 'step': self.current_step,
                 'quote_data': serializable_quote_data,
                 'selected_items': draft_items,
-                'current_step': self.current_step
+                'current_step': self.current_step,
+                'approval_required_items': approval_required_items,  # Store approval requirement info
+                'requires_manager_approval': len(approval_required_items) > 0 and user_role not in ['admin', 'manager']
             }
+            
             # Save draft to DB
             self.db_manager.save_draft(
                 state=draft_state,
@@ -2352,8 +2376,25 @@ class QuoteWizard:
             )
             self.logger.info(f"Draft saved at step {self.current_step} with {len(self.selected_items)} items")
             
-            # Show success message
-            messagebox.showinfo("הצלחה", "הטיוטה נשמרה בהצלחה!")
+            # Show success message with approval information
+            if approval_required_items and user_role not in ['admin', 'manager']:
+                items_list = ', '.join(approval_required_items[:3])  # Show first 3 items
+                if len(approval_required_items) > 3:
+                    items_list += f" ועוד {len(approval_required_items) - 3}"
+                
+                success_message = (
+                    "הטיוטה נשמרה בהצלחה!\n\n"
+                    f"⚠️ הטיוטה מכילה פריטים הדורשים אישור מנהל:\n{items_list}\n\n"
+                    "🔒 ממתין לאישור מנהל"
+                )
+                messagebox.showinfo("טיוטה נשמרה לאישור", success_message)
+            else:
+                messagebox.showinfo("הצלחה", "הטיוטה נשמרה בהצלחה!")
+                
+            # Close wizard
+            if self.dialog:
+                self.dialog.destroy()
+                
         except Exception as e:
             self.logger.error(f"Error saving draft: {e}")
             messagebox.showerror("שגיאה", f"שגיאה בשמירת הטיוטה: {e}")
