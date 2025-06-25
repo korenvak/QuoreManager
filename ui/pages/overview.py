@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any
 from styling.theme_system import ModernThemeManager, THEMES
 from config.settings import SettingsManager
+from database.db_manager import DatabaseManager
+from utils.permissions import PermissionManager
 
 class OverviewPage:
     """Modern overview dashboard page with theme integration"""
@@ -24,6 +26,10 @@ class OverviewPage:
         self.settings_manager = SettingsManager()
         self.theme_manager = ModernThemeManager(self.settings_manager)
         self.theme = self.theme_manager.get_current_theme()
+        
+        # Initialize logger
+        import logging
+        self.logger = logging.getLogger(__name__)
         
     def create_content(self):
         """Create beautiful modern overview page content with theme integration"""
@@ -92,7 +98,7 @@ class OverviewPage:
         welcome_label.pack(anchor="e")
         
         # Current date with refined styling
-        current_date = datetime.now().strftime("%d/%m/%Y")
+        current_date = self.format_date_hebrew(datetime.now().isoformat())
         date_label = ctk.CTkLabel(
             header_frame,
             text=f"היום: {current_date}",
@@ -101,6 +107,27 @@ class OverviewPage:
             anchor="e"
         )
         date_label.pack(anchor="e", pady=(self.theme_manager.get_spacing('xs'), 0))  # Tighter spacing
+    
+    def format_date_hebrew(self, date_str: str) -> str:
+        """Format date string to Hebrew format with error handling"""
+        try:
+            if not date_str:
+                return "לא צוין"
+            
+            # Import datetime here to ensure it's available
+            from datetime import datetime
+            
+            # Parse the date string
+            if isinstance(date_str, str):
+                date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            else:
+                date_obj = date_str
+            
+            # Format to Hebrew
+            return date_obj.strftime("%d/%m/%Y")
+        except Exception as e:
+            self.logger.error(f"Error formatting date: {e}")
+            return "תאריך לא תקין"
     
     def create_modern_stats_section(self, parent):
         """Create refined compact statistics cards section"""
