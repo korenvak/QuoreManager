@@ -1947,33 +1947,29 @@ class QuoteWizard:
     def update_totals_display(self, subtotal, contractor_discount, regular_discount_amount, vat_amount, final_total):
         """Update totals display using the label system"""
         try:
-            # Update the labels if they exist
-            if hasattr(self, 'subtotal_label') and self.subtotal_label:
-                self.subtotal_label.configure(text=f"סכום ביניים: ₪{subtotal:,.2f}")
+            def safe_config(widget, **kwargs):
+                try:
+                    if widget and widget.winfo_exists():
+                        widget.configure(**kwargs)
+                except Exception:
+                    pass
             
-            if hasattr(self, 'contractor_discount_label') and self.contractor_discount_label:
-                if contractor_discount > 0:
-                    self.contractor_discount_label.configure(
-                        text=f"הנחת קבלן: -₪{contractor_discount:,.2f}",
-                        text_color="#F59E0B"
-                    )
-                else:
-                    self.contractor_discount_label.configure(text="")
+            safe_config(getattr(self, 'subtotal_label', None), text=f"סכום ביניים: ₪{subtotal:,.2f}")
             
-            if hasattr(self, 'discount_label') and self.discount_label:
-                if regular_discount_amount > 0:
-                    self.discount_label.configure(
-                        text=f"הנחה כללית: -₪{regular_discount_amount:,.2f}",
-                        text_color="#F59E0B"
-                    )
-                else:
-                    self.discount_label.configure(text="")
+            contractor_label = getattr(self, 'contractor_discount_label', None)
+            if contractor_discount > 0:
+                safe_config(contractor_label, text=f"הנחת קבלן: -₪{contractor_discount:,.2f}", text_color="#F59E0B")
+            else:
+                safe_config(contractor_label, text="")
             
-            if hasattr(self, 'vat_label') and self.vat_label:
-                self.vat_label.configure(text=f"מע״מ: ₪{vat_amount:,.2f}")
+            discount_label = getattr(self, 'discount_label', None)
+            if regular_discount_amount > 0:
+                safe_config(discount_label, text=f"הנחה כללית: -₪{regular_discount_amount:,.2f}", text_color="#F59E0B")
+            else:
+                safe_config(discount_label, text="")
             
-            if hasattr(self, 'total_label') and self.total_label:
-                self.total_label.configure(text=f"סה״כ לתשלום: ₪{final_total:,.2f}")
+            safe_config(getattr(self, 'vat_label', None), text=f"מע״מ: ₪{vat_amount:,.2f}")
+            safe_config(getattr(self, 'total_label', None), text=f"סה״כ לתשלום: ₪{final_total:,.2f}")
             
         except Exception as e:
             import logging
@@ -2319,10 +2315,23 @@ class QuoteWizard:
                         messagebox.showerror("שגיאה", "אין לך הרשאה לערוך את ההצעה או שהעריכה נכשלה")
                         return
                     # Get the updated quote data
-                    quote = self.db_manager.get_quote_by_id(quote_id_existing)
+                    quote = self.db_manager.get_quote_dict_by_id(quote_id_existing)
                     if not quote:
                         messagebox.showerror("שגיאה", "שגיאה בטעינת הצעת המחיר המעודכנת")
                         return
+                    # Ensure quote is a dict for downstream usage
+                    if isinstance(quote, dict):
+                        quote = quote
+                    else:
+                        try:
+                            # Use the internal helper to convert
+                            quote = self.db_manager._quote_to_dict(quote)
+                        except Exception:
+                            # Fallback minimal dict
+                            quote = {
+                                'id': getattr(quote, 'id', quote_id_existing),
+                                'quote_number': getattr(quote, 'quote_number', quote_id_existing)
+                            }
                 except ValueError as ve:
                     messagebox.showerror("שגיאה בהרשאות", str(ve))
                     return

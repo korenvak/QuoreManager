@@ -1000,4 +1000,12 @@ class DatabaseManager:
                 return True
         except Exception as e:
             self.logger.error(f"Error clearing quotes data: {e}")
-            return False 
+            return False
+    
+    def get_quote_dict_by_id(self, quote_id: int):
+        """Get quote by ID as plain dictionary to avoid detached instances"""
+        with self.get_session() as session:
+            quote = session.query(Quote).filter_by(id=quote_id).first()
+            if quote:
+                return self._quote_to_dict(quote)
+            return None 
