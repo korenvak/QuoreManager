@@ -1550,6 +1550,14 @@ class QuoteWizard:
         self.contractor_discount_var.trace("w", lambda *args: self.calculate_totals())
         self.vat_rate_var.trace("w", lambda *args: self.calculate_totals())
         
+        # If we're editing a quote or draft, ensure the values are properly set
+        if hasattr(self, '_editing_quote') and self._editing_quote:
+            # Force set the values again to ensure they're properly loaded
+            print(f"Editing mode detected, forcing discount values: regular={existing_regular_discount}, contractor={existing_contractor_discount}, vat={existing_vat_rate}")
+            self.regular_discount_var.set(str(existing_regular_discount))
+            self.contractor_discount_var.set(str(existing_contractor_discount))
+            self.vat_rate_var.set(str(existing_vat_rate))
+        
         # Totals section
         totals_title = ctk.CTkLabel(
             right_frame,
@@ -2116,34 +2124,61 @@ class QuoteWizard:
             regular_discount = 0.0
             contractor_discount = 0.0
             vat_rate = 17.0
-            if hasattr(self, 'regular_discount_var') and self.regular_discount_var:
-                try:
-                    regular_discount = float(self.regular_discount_var.get() or 0)
-                except (ValueError, AttributeError):
-                    regular_discount = 0.0
-            if hasattr(self, 'contractor_discount_var') and self.contractor_discount_var:
-                try:
-                    contractor_discount = float(self.contractor_discount_var.get() or 0)
-                except (ValueError, AttributeError):
-                    contractor_discount = 0.0
-            if hasattr(self, 'vat_rate_var') and self.vat_rate_var:
-                try:
-                    vat_rate = float(self.vat_rate_var.get() or 17)
-                except (ValueError, AttributeError):
-                    vat_rate = 17.0
+            
+            # Get values from UI variables if in step 3 (pricing/discounts)
+            if self.current_step == 3:
+                if hasattr(self, 'regular_discount_var') and self.regular_discount_var:
+                    try:
+                        regular_discount = float(self.regular_discount_var.get() or 0)
+                        print(f"Step 3: Captured regular_discount from UI: {regular_discount}")
+                    except (ValueError, AttributeError):
+                        regular_discount = self.quote_data.get('regular_discount', 0.0)
+                        print(f"Step 3: Failed to get regular_discount from UI, using quote_data: {regular_discount}")
+                        
+                if hasattr(self, 'contractor_discount_var') and self.contractor_discount_var:
+                    try:
+                        contractor_discount = float(self.contractor_discount_var.get() or 0)
+                        print(f"Step 3: Captured contractor_discount from UI: {contractor_discount}")
+                    except (ValueError, AttributeError):
+                        contractor_discount = self.quote_data.get('contractor_discount', 0.0)
+                        print(f"Step 3: Failed to get contractor_discount from UI, using quote_data: {contractor_discount}")
+                        
+                if hasattr(self, 'vat_rate_var') and self.vat_rate_var:
+                    try:
+                        vat_rate = float(self.vat_rate_var.get() or 17)
+                        print(f"Step 3: Captured vat_rate from UI: {vat_rate}")
+                    except (ValueError, AttributeError):
+                        vat_rate = self.quote_data.get('vat_rate', 17.0)
+                        print(f"Step 3: Failed to get vat_rate from UI, using quote_data: {vat_rate}")
+            else:
+                # For other steps, use existing quote_data values
+                regular_discount = self.quote_data.get('regular_discount', 0.0)
+                contractor_discount = self.quote_data.get('contractor_discount', 0.0)
+                vat_rate = self.quote_data.get('vat_rate', 17.0)
+                print(f"Step {self.current_step}: Using existing quote_data values")
+            
+            # Update quote_data with captured values
             self.quote_data.update({
                 'regular_discount': regular_discount,
                 'contractor_discount': contractor_discount,
                 'vat_rate': vat_rate
             })
+            
+            print(f"save_step_data: Updated quote_data with discounts: regular={regular_discount}, contractor={contractor_discount}, vat={vat_rate}")
+            
             # Recalculate totals
             self.calculate_totals()
+            
             # Save notes if on summary step
             if self.current_step == 4 and hasattr(self, 'notes_textbox'):
-                self.quote_data['notes'] = self.notes_textbox.get("1.0", "end-1c")
+                notes_content = self.notes_textbox.get("1.0", "end-1c")
+                self.quote_data['notes'] = notes_content
+                print(f"Step 4: Captured notes: {notes_content}")
+                
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Error saving step data: {e}")
+            print(f"Error in save_step_data: {e}")
     
     def finish_wizard(self):
         """Finish wizard and create active quote (not draft)"""
@@ -2565,21 +2600,46 @@ class QuoteWizard:
     def _finish_edit_setup(self):
         """Finish the edit setup after UI is created"""
         try:
-            # Explicitly set the StringVars if they exist
-            if hasattr(self, 'regular_discount_var'):
-                self.regular_discount_var.set(str(self.quote_data.get('regular_discount', 0)))
-            if hasattr(self, 'contractor_discount_var'):
-                self.contractor_discount_var.set(str(self.quote_data.get('contractor_discount', 0)))
-            if hasattr(self, 'vat_rate_var'):
-                self.vat_rate_var.set(str(self.quote_data.get('vat_rate', 17)))
+            # Explicitly set the StringVars if they exist with proper values
+            if hasattr(self, 'regular_discount_var') and self.regular_discount_var:
+                discount_value = self.quote_data.get('regular_discount', 0)
+                self.regular_discount_var.set(str(discount_value))
+                print(f"Set regular_discount_var to: {discount_value}")
+                
+            if hasattr(self, 'contractor_discount_var') and self.contractor_discount_var:
+                contractor_value = self.quote_data.get('contractor_discount', 0)
+                self.contractor_discount_var.set(str(contractor_value))
+                print(f"Set contractor_discount_var to: {contractor_value}")
+                
+            if hasattr(self, 'vat_rate_var') and self.vat_rate_var:
+                vat_value = self.quote_data.get('vat_rate', 17)
+                self.vat_rate_var.set(str(vat_value))
+                print(f"Set vat_rate_var to: {vat_value}")
+            
+            # Also set notes if we have the textbox
+            if hasattr(self, 'notes_textbox') and self.notes_textbox:
+                notes_value = self.quote_data.get('notes', '')
+                self.notes_textbox.delete("1.0", "end")
+                self.notes_textbox.insert("1.0", notes_value)
+                print(f"Set notes to: {notes_value}")
             
             # Clear the editing flag
             self._editing_quote = False
             
+            # Force update the quote_data with the correct values before calculating
+            self.quote_data.update({
+                'regular_discount': self.quote_data.get('regular_discount', 0),
+                'contractor_discount': self.quote_data.get('contractor_discount', 0),
+                'vat_rate': self.quote_data.get('vat_rate', 17)
+            })
+            
             # Now calculate totals with the correct values
             self.calculate_totals()
             
+            print(f"Finished edit setup with quote_data: {self.quote_data}")
+            
         except Exception as e:
+            print(f"Error in _finish_edit_setup: {e}")
             self._editing_quote = False
     
     def clear_cart(self):
