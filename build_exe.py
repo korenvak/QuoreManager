@@ -30,16 +30,16 @@ def check_dependencies():
             missing_optional.append(package)
     
     if missing:
-        print(f"❌ Missing required packages: {', '.join(missing)}")
+        print(f"X Missing required packages: {', '.join(missing)}")
         print("Install them with: pip install PyInstaller")
         return False
     
     if missing_optional:
-        print(f"⚠️  Missing optional Windows packages: {', '.join(missing_optional)}")
+        print(f"! Missing optional Windows packages: {', '.join(missing_optional)}")
         print("For better compatibility, install: pip install pywin32")
         print("Continuing build anyway...")
     else:
-        print("✅ All Windows compatibility packages found!")
+        print("+ All Windows compatibility packages found!")
     
     return True
 
@@ -168,7 +168,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='resources/White_Logo.ico' if os.path.exists('resources/White_Logo.ico') else None,
+    icon='resources/version5_icon.ico' if os.path.exists('resources/version5_icon.ico') else None,
     manifest='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0"><assemblyIdentity version="1.0.0.0" processorArchitecture="*" name="KitchenQuoteManager" type="win32"/><description>Kitchen Quote Management System</description><trustInfo xmlns="urn:schemas-microsoft-com:asm.v2"><security><requestedPrivileges><requestedExecutionLevel level="asInvoker" uiAccess="false"/></requestedPrivileges></security></trustInfo><compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1"><application><supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/><supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/><supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/></application></compatibility><application xmlns="urn:schemas-microsoft-com:asm.v3"><windowsSettings><dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware><dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness></windowsSettings></application></assembly>',
 )
 '''
@@ -219,7 +219,7 @@ def create_installer_script():
 !define APPNAME "Kitchen Quote Management System"
 !define COMPANYNAME "Kitchen Studio"
 !define DESCRIPTION "מערכת ניהול הצעות מטבח"
-!define VERSIONMAJOR 1
+!define VERSIONMAJOR 2
 !define VERSIONMINOR 0
 !define VERSIONBUILD 0
 !define HELPURL "https://github.com/your-repo/kitchen-quotes"
@@ -230,7 +230,7 @@ def create_installer_script():
 RequestExecutionLevel admin
 InstallDir "$PROGRAMFILES\\${COMPANYNAME}\\${APPNAME}"
 Name "${APPNAME}"
-outFile "KitchenQuoteManager_Setup.exe"
+outFile "KitchenQuoteManager_v2.0_Setup.exe"
 
 page directory
 page instfiles
@@ -293,13 +293,13 @@ def optimize_exe():
         print("EXE file not found for optimization")
         return
     
-    print("✅ EXE Compatibility Features:")
+    print("+ EXE Compatibility Features:")
     print("1. Windows system dependencies automatically included")
     print("2. Visual C++ redistributable compatibility improved")
     print("3. Windows manifest for OS compatibility (7, 8, 10, 11)")
     print("4. Enhanced dependency collection for fewer missing DLL errors")
     print("5. UPX compression enabled for smaller file size")
-    print("\n📊 Build Statistics:")
+    print("\n+ Build Statistics:")
     print("1. The EXE includes Python runtime and all dependencies")
     print("2. Expected compatibility: 95%+ of Windows 10/11 systems")
     print("3. Antivirus false positive rate: ~10% (normal for PyInstaller)")
@@ -321,7 +321,7 @@ def main():
     
     # Build EXE
     if build_exe():
-        print("\n✅ Build completed successfully!")
+        print("\n+ Build completed successfully!")
         
         # Create installer script
         create_installer_script()
@@ -336,7 +336,7 @@ def main():
         
         return 0
     else:
-        print("\n❌ Build failed!")
+        print("\nX Build failed!")
         return 1
 
 if __name__ == "__main__":

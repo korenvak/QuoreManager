@@ -5,7 +5,7 @@
 !define APPNAME "Kitchen Quote Management System"
 !define COMPANYNAME "Kitchen Studio"
 !define DESCRIPTION "מערכת ניהול הצעות מטבח"
-!define VERSIONMAJOR 1
+!define VERSIONMAJOR 2
 !define VERSIONMINOR 0
 !define VERSIONBUILD 0
 !define HELPURL "https://github.com/your-repo/kitchen-quotes"
@@ -16,7 +16,7 @@
 RequestExecutionLevel admin
 InstallDir "$PROGRAMFILES\${COMPANYNAME}\${APPNAME}"
 Name "${APPNAME}"
-outFile "KitchenQuoteManager_Setup.exe"
+outFile "KitchenQuoteManager_v2.0_Setup.exe"
 
 page directory
 page instfiles
