@@ -1,5 +1,5 @@
 """
-Drafts Management Page for Kitchen Quote Management System
+Drafts Management Page for Kitchen Quote Management System - Modern Professional Design
 Shows all drafts with age grouping, permission checks, and management options
 """
 
@@ -9,9 +9,11 @@ import threading
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from utils.permissions import PermissionManager
+from styling.theme_system import ModernThemeManager, THEMES
+from config.settings import SettingsManager
 
 class DraftsPage:
-    """Drafts management page with age grouping and permission checks"""
+    """Modern professional drafts management page with theme integration"""
     
     def __init__(self, parent, db_manager, current_user):
         self.parent = parent
@@ -24,79 +26,97 @@ class DraftsPage:
         # Initialize permission manager
         self.permission_manager = PermissionManager(db_manager)
         
+        # Initialize theme system
+        self.settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(self.settings_manager)
+        self.theme = self.theme_manager.get_current_theme()
+        
     def create_content(self):
-        """Create drafts page content
-        NOTE: Only the main_frame uses pack() on self.parent. All children use pack() on their respective parents.
-        Do NOT use grid() on self.parent or any direct child of self.parent.
-        """
-        # Main container with white background
-        main_frame = ctk.CTkFrame(
+        """Create modern professional drafts page content"""
+        # Main container with gradient background
+        main_frame = ctk.CTkScrollableFrame(
             self.parent,
-            fg_color="#FFFFFF",
-            corner_radius=0
+            fg_color=self.theme['bg_secondary'],
+            corner_radius=0,
+            scrollbar_button_color=self.theme['primary_light'],
+            scrollbar_button_hover_color=self.theme['primary']
         )
-        main_frame.pack(fill="both", expand=True)  # Use pack instead of grid
+        main_frame.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # All children of main_frame use pack()
-        content_frame = ctk.CTkFrame(
-            main_frame,
-            fg_color="transparent"
-        )
-        content_frame.pack(fill="both", expand=True, padx=30, pady=30)
+        # Inner container with compact spacing
+        inner_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        inner_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
         
-        # Page header
-        self.create_header(content_frame)
+        # Professional page header
+        self.create_modern_header(inner_frame)
         
-        # Draft groups (Today, Older)
-        self.create_draft_groups(content_frame)
+        # Modern draft groups
+        self.create_draft_groups(inner_frame)
         
-        # Load drafts data after UI is fully set up
         # Load drafts data
         self.load_drafts_data()
     
-    def create_header(self, parent):
-        """Create page header with actions"""
-        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 30))
+    def create_modern_header(self, parent):
+        """Create modern professional page header with actions"""
+        # Header card
+        header_card = ctk.CTkFrame(
+            parent, 
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_width=1,
+            border_color=self.theme['border_light']
+        )
+        header_card.pack(fill="x", pady=(0, self.theme_manager.get_spacing('xl')))
+        
+        header_frame = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Title section
+        title_section = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_section.pack(fill="x", pady=(0, self.theme_manager.get_spacing('md')))
         
         # Title
         title_label = ctk.CTkLabel(
-            header_frame,
+            title_section,
             text="טיוטות הצעות מחיר",
-            font=ctk.CTkFont(family="Assistant", size=32, weight="bold"),
-            text_color="#1F2937",
+            font=self.theme_manager.create_ctk_font('title'),
+            text_color=self.theme['text_primary'],
             anchor="e"
         )
         title_label.pack(anchor="e")
         
+        # Subtitle
+        subtitle_label = ctk.CTkLabel(
+            title_section,
+            text="נהל וערוך טיוטות הצעות מחיר שמורות",
+            font=self.theme_manager.create_ctk_font('body'),
+            text_color=self.theme['text_muted'],
+            anchor="e"
+        )
+        subtitle_label.pack(anchor="e", pady=(self.theme_manager.get_spacing('xs'), 0))
+        
         # Action buttons
         actions_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        actions_frame.pack(anchor="e", pady=(10, 0))
+        actions_frame.pack(anchor="e")
         
-        # Cleanup old drafts button (admin only)
-        if self.current_user.get('role') == 'admin':
-            cleanup_btn = ctk.CTkButton(
-                actions_frame,
-                text="🗑️ נקה טיוטות ישנות",
-                font=ctk.CTkFont(family="Assistant", size=14),
-                height=35,
-                fg_color="#EF4444",
-                hover_color="#DC2626",
-                command=self.cleanup_old_drafts
-            )
-            cleanup_btn.pack(side="right", padx=(0, 10))
-        
-        # Refresh button
-        refresh_btn = ctk.CTkButton(
+        # Refresh button - using theme colors
+        refresh_btn = self.theme_manager.create_modern_button(
             actions_frame,
-            text="🔄 רענן",
-            font=ctk.CTkFont(family="Assistant", size=14),
-            height=35,
-            fg_color="#3B82F6",
-            hover_color="#2563EB",
+            text="🔄  רענן",
+            style="primary",
             command=self.load_drafts_data
         )
         refresh_btn.pack(side="right")
+        
+        # Cleanup old drafts button (admin only) - using theme colors
+        if self.current_user.get('role') == 'admin':
+            cleanup_btn = self.theme_manager.create_modern_button(
+                actions_frame,
+                text="🗑️  נקה טיוטות ישנות",
+                style="danger",
+                command=self.cleanup_old_drafts
+            )
+            cleanup_btn.pack(side="right", padx=(0, self.theme_manager.get_spacing('sm')))
     
     def create_draft_groups(self, parent):
         """Create draft groups by age (only today and older)"""
@@ -108,33 +128,46 @@ class DraftsPage:
         self.older_frame = self.create_group_section("ישן יותר", "#EF4444")
     
     def create_group_section(self, title: str, color: str):
-        """Create a group section for drafts"""
+        """Create a modern group section for drafts"""
         print(f"create_group_section called with title={title!r}")
-        # Group container
+        
+        # Determine modern colors based on title
+        if title == "היום":
+            header_color = self.theme['primary']
+            icon = "📝"
+        else:
+            header_color = "#EF4444"  # Red for older drafts
+            icon = "📋"
+            
+        # Group container with modern styling
         group_frame = ctk.CTkFrame(
             self.groups_container,
-            fg_color="#FAFBFF",
-            corner_radius=15,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
             border_width=1,
-            border_color="#E1E8F7"
+            border_color=self.theme['border_light']
         )
-        group_frame.pack(fill="x", pady=(0, 20))
+        group_frame.pack(fill="x", pady=(0, self.theme_manager.get_spacing('lg')))
         
-        # Group header
-        header_frame = ctk.CTkFrame(group_frame, fg_color=color, corner_radius=10)
-        header_frame.pack(fill="x", padx=15, pady=15)
+        # Group header with modern design
+        header_frame = ctk.CTkFrame(
+            group_frame, 
+            fg_color=header_color, 
+            corner_radius=8
+        )
+        header_frame.pack(fill="x", padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('lg'))
         
         header_label = ctk.CTkLabel(
             header_frame,
-            text=title,
-            font=ctk.CTkFont(family="Assistant", size=18, weight="bold"),
+            text=f"{icon}  {title}",
+            font=self.theme_manager.create_ctk_font('heading'),
             text_color="white"
         )
-        header_label.pack(pady=10)
+        header_label.pack(pady=self.theme_manager.get_spacing('md'))
         
-        # Drafts container
+        # Drafts container with modern styling
         drafts_container = ctk.CTkFrame(group_frame, fg_color="transparent")
-        drafts_container.pack(fill="x", padx=15, pady=(0, 15))
+        drafts_container.pack(fill="x", padx=self.theme_manager.get_spacing('lg'), pady=(0, self.theme_manager.get_spacing('lg')))
         
         # Store reference based on title
         if title == "היום":
@@ -378,23 +411,23 @@ class DraftsPage:
             }
             
             if draft['can_edit']:
-                continue_btn = ctk.CTkButton(
+                continue_btn = self.theme_manager.create_modern_button(
                     actions_frame,
                     text="המשך",
-                    fg_color="#3B82F6",
-                    hover_color="#1E40AF",
-                    command=lambda d=draft: self.continue_draft(d),
-                    **button_config
+                    style="primary",
+                    size="small",
+                    width=80,
+                    command=lambda d=draft: self.continue_draft(d)
                 )
                 continue_btn.pack(side="left", padx=(0, 5))
             
-            delete_btn = ctk.CTkButton(
+            delete_btn = self.theme_manager.create_modern_button(
                 actions_frame,
                 text="מחק",
-                fg_color="#EF4444",
-                hover_color="#DC2626",
-                command=lambda d=draft: self.delete_draft(d),
-                **button_config
+                style="danger",
+                size="small",
+                width=80,
+                command=lambda d=draft: self.delete_draft(d)
             )
             delete_btn.pack(side="left")
             

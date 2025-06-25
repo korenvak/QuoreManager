@@ -46,5 +46,6 @@
     "cloud_sync": false,
     "advanced_reporting": true,
     "multi_currency": false
-  }
+  },
+  "color_theme": "blue"
 }

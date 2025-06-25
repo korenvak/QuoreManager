@@ -10,13 +10,17 @@ from typing import Callable, Optional, Dict, Any
 from pathlib import Path
 
 class LoginWindow:
-    """Login window with authentication"""
+    """Login window with authentication and modern design"""
     
     def __init__(self, auth_manager, settings_manager, on_success: Callable, on_error: Callable):
         self.auth_manager = auth_manager
         self.settings_manager = settings_manager
         self.on_success = on_success
         self.on_error = on_error
+        
+        # Import theme manager
+        from styling.theme_system import ModernThemeManager
+        self.theme_manager = ModernThemeManager(settings_manager)
         
         self.window = None
         self.username_entry = None
@@ -27,36 +31,30 @@ class LoginWindow:
         self.setup_window()
     
     def setup_window(self):
-        """Setup the login window"""
+        """Setup the login window with modern design"""
         self.window = ctk.CTk()
         self.window.title("מערכת ניהול הצעות מטבח - כניסה")
         
-        # Make window responsive to screen size
-        screen_width = self.window.winfo_screenwidth()
-        screen_height = self.window.winfo_screenheight()
+        # Configure modern colors
+        current_theme = self.theme_manager.get_current_theme()
+        ctk.set_default_color_theme("blue")
+        ctk.set_appearance_mode("light")
         
-        # Calculate appropriate window size
-        window_width = min(400, int(screen_width * 0.4))
-        window_height = min(550, int(screen_height * 0.7))
-        
-        # Ensure minimum sizes
-        window_width = max(350, window_width)
-        window_height = max(500, window_height)
+        # Window size and positioning
+        window_width = 520
+        window_height = 680
         
         self.window.geometry(f"{window_width}x{window_height}")
-        self.window.resizable(True, True)  # Allow resizing
-        
-        # Set minimum window size
-        self.window.minsize(350, 500)
+        self.window.resizable(False, False)  # Fixed size for login
         
         # Center window on screen
         self.center_window()
         
-        # Set window icon
+        # Set window icon using version 5 icons
         self.set_window_icon()
         
-        # Create UI elements
-        self.create_widgets()
+        # Create modern UI
+        self.create_modern_widgets()
         
         # Bind Enter key to login
         self.window.bind('<Return>', lambda e: self.handle_login())
@@ -74,173 +72,263 @@ class LoginWindow:
         self.window.geometry(f"{width}x{height}+{x}+{y}")
     
     def set_window_icon(self):
-        """Set window icon"""
+        """Set window icon using version 2 icons"""
         try:
-            icon_path = Path(__file__).parent.parent / "resources" / "White_Logo.ico"
+            # Use correct version 2 icons for each theme
+            icon_name = "version2_blue_icon.ico" if self.theme_manager.current_color_theme == 'blue' else "version2_icon.ico"
+            icon_path = Path(__file__).parent.parent / "resources" / icon_name
+            
             if icon_path.exists():
                 self.window.iconbitmap(str(icon_path))
         except Exception:
             pass  # Ignore icon errors
     
-    def create_widgets(self):
-        """Create and arrange UI widgets"""
-        # Main container with white background
-        main_frame = ctk.CTkFrame(self.window, corner_radius=0, fg_color="#FFFFFF")
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+    def create_modern_widgets(self):
+        """Create modern UI widgets with beautiful design"""
+        current_theme = self.theme_manager.get_current_theme()
         
-        # Logo section
-        self.create_logo_section(main_frame)
-        
-        # Title
-        title_label = ctk.CTkLabel(
-            main_frame,
-            text="כניסה למערכת",
-            font=ctk.CTkFont(family="Heebo", size=24, weight="bold"),
-            text_color=("gray10", "gray90")
+        # Main container with beautiful gradient background
+        main_frame = ctk.CTkFrame(
+            self.window, 
+            corner_radius=0,
+            fg_color=("#F8FAFC", "#1E293B")  # Light/dark mode support
         )
-        title_label.pack(pady=(20, 30))
+        main_frame.pack(fill="both", expand=True)
         
-        # Login form
-        self.create_login_form(main_frame)
+        # Beautiful gradient header
+        header_frame = ctk.CTkFrame(
+            main_frame,
+            corner_radius=0,
+            height=220,
+            fg_color=current_theme['primary']
+        )
+        header_frame.pack(fill="x", pady=0)
+        header_frame.pack_propagate(False)
         
-        # Theme toggle button
-        self.create_theme_toggle(main_frame)
+        # Logo section with version 2 icon
+        self.create_modern_logo_section(header_frame)
         
-        # Footer
-        self.create_footer(main_frame)
+        # Login card container
+        card_frame = ctk.CTkFrame(
+            main_frame,
+            corner_radius=24,
+            fg_color=("#FFFFFF", "#334155"),
+            border_width=1,
+            border_color=("#E2E8F0", "#475569")
+        )
+        card_frame.pack(pady=(40, 60), padx=40, fill="x")
+        
+        # Add subtle shadow effect (visual styling)
+        shadow_frame = ctk.CTkFrame(
+            card_frame,
+            corner_radius=20,
+            fg_color="transparent"
+        )
+        shadow_frame.pack(fill="both", expand=True, padx=4, pady=4)
+        
+        # Card content
+        self.create_login_card_content(shadow_frame)
+        
+        # Theme toggle in bottom corner
+        self.create_modern_theme_toggle(main_frame)
+        
+        # Professional footer
+        self.create_modern_footer(main_frame)
     
-    def create_logo_section(self, parent):
-        """Create logo section"""
-        logo_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        logo_frame.pack(pady=(10, 0))
+    def create_modern_logo_section(self, parent):
+        """Create beautiful logo section with version 2 icon"""
+        logo_container = ctk.CTkFrame(parent, fg_color="transparent")
+        logo_container.pack(expand=True, fill="both")
         
         try:
-            # Try to load logo with better quality
+            # Use correct version 2 icons for each theme
+            icon_name = "version2_blue_icon.ico" if self.theme_manager.current_color_theme == 'blue' else "version2_icon.ico"
+            
+            # Try to load version 2 icon as image
             from PIL import Image
-            logo_path = Path(__file__).parent.parent / "resources" / "logo.png"
-            if logo_path.exists():
-                # Load and use PIL Image directly for better quality
-                pil_image = Image.open(str(logo_path))
-                logo_image = ctk.CTkImage(
-                    light_image=pil_image,
-                    dark_image=pil_image,
-                    size=(100, 100)  # Increased size for better visibility
-                )
-                logo_label = ctk.CTkLabel(logo_frame, image=logo_image, text="")
-                logo_label.pack()
+            icon_path = Path(__file__).parent.parent / "resources" / icon_name
+            
+            if icon_path.exists():
+                # Load the icon file and convert to image
+                try:
+                    pil_image = Image.open(str(icon_path))
+                    # Convert to RGBA if needed
+                    if pil_image.mode != 'RGBA':
+                        pil_image = pil_image.convert('RGBA')
+                    
+                    logo_image = ctk.CTkImage(
+                        light_image=pil_image,
+                        dark_image=pil_image,
+                        size=(120, 120)
+                    )
+                    logo_label = ctk.CTkLabel(
+                        logo_container, 
+                        image=logo_image, 
+                        text="",
+                        fg_color="transparent"
+                    )
+                    logo_label.pack(pady=(30, 20))
+                except Exception:
+                    raise FileNotFoundError("Could not process icon")
             else:
-                raise FileNotFoundError("Logo not found")
+                raise FileNotFoundError("Icon not found")
+                
         except Exception:
-            # Professional fallback icon
+            # Professional fallback with beautiful styling
             logo_label = ctk.CTkLabel(
-                logo_frame,
-                text="🏢",  # Changed to office building for professional look
-                font=ctk.CTkFont(size=70)  # Slightly larger
+                logo_container,
+                text="🏢",
+                font=ctk.CTkFont(size=80),
+                text_color=["#FFFFFF", "#F1F5F9"],
+                fg_color="transparent"
             )
-            logo_label.pack()
-    
-    def create_login_form(self, parent):
-        """Create login form"""
-        form_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        form_frame.pack(pady=20, padx=40, fill="x")
+            logo_label.pack(pady=(30, 20))
         
-        # Username field
+        # Welcome text with modern typography
+        welcome_label = ctk.CTkLabel(
+            logo_container,
+            text="ברוכים הבאים למערכת",
+            font=ctk.CTkFont(family="Assistant", size=24, weight="bold"),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        welcome_label.pack(pady=(0, 10))
+        
+        subtitle_label = ctk.CTkLabel(
+            logo_container,
+            text="ניהול הצעות מטבח מקצועי",
+            font=ctk.CTkFont(family="Assistant", size=16),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        subtitle_label.pack()
+    
+    def create_login_card_content(self, parent):
+        """Create beautiful login form inside card"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        # Card inner container
+        content_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        content_frame.pack(fill="both", expand=True, padx=32, pady=32)
+        
+        # Title with modern typography
+        title_label = ctk.CTkLabel(
+            content_frame,
+            text="כניסה למערכת",
+            font=ctk.CTkFont(family="Assistant", size=28, weight="bold"),
+            text_color=current_theme['text_primary']
+        )
+        title_label.pack(pady=(0, 32))
+        
+        # Username field with modern styling
         username_label = ctk.CTkLabel(
-            form_frame,
-            text="שם משתמש:",
-            font=ctk.CTkFont(family="Heebo", size=14),
+            content_frame,
+            text="שם משתמש",
+            font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=current_theme['text_secondary'],
             anchor="e"
         )
-        username_label.pack(anchor="e", pady=(0, 5))
+        username_label.pack(anchor="e", pady=(0, 8))
         
         self.username_entry = ctk.CTkEntry(
-            form_frame,
+            content_frame,
             placeholder_text="הזן שם משתמש",
-            font=ctk.CTkFont(family="Heebo", size=14),
-            height=40,
-            justify="right"
+            font=ctk.CTkFont(family="Assistant", size=16),
+            height=50,
+            corner_radius=12,
+            border_width=2,
+            border_color=current_theme['border'],
+            fg_color=current_theme['input_bg'],
+            text_color=current_theme['text_primary']
         )
-        self.username_entry.pack(fill="x", pady=(0, 15))
+        self.username_entry.pack(fill="x", pady=(0, 20))
         
-        # Password field
+        # Password field with modern styling
         password_label = ctk.CTkLabel(
-            form_frame,
-            text="סיסמה:",
-            font=ctk.CTkFont(family="Heebo", size=14),
+            content_frame,
+            text="סיסמה",
+            font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=current_theme['text_secondary'],
             anchor="e"
         )
-        password_label.pack(anchor="e", pady=(0, 5))
+        password_label.pack(anchor="e", pady=(0, 8))
         
         self.password_entry = ctk.CTkEntry(
-            form_frame,
+            content_frame,
             placeholder_text="הזן סיסמה",
             show="•",
-            font=ctk.CTkFont(family="Heebo", size=14),
-            height=40,
-            justify="right"
+            font=ctk.CTkFont(family="Assistant", size=16),
+            height=50,
+            corner_radius=12,
+            border_width=2,
+            border_color=current_theme['border'],
+            fg_color=current_theme['input_bg'],
+            text_color=current_theme['text_primary']
         )
-        self.password_entry.pack(fill="x", pady=(0, 20))
+        self.password_entry.pack(fill="x", pady=(0, 32))
         
-        # Login button
-        self.login_button = ctk.CTkButton(
-            form_frame,
-            text="כניסה",
-            font=ctk.CTkFont(family="Heebo", size=16, weight="bold"),
-            height=45,
+        # Modern login button with gradient and shadow
+        self.login_button = self.theme_manager.create_modern_button(
+            content_frame,
+            text="כניסה למערכת",
+            style="primary",
+            size="large",
             command=self.handle_login
         )
-        self.login_button.pack(fill="x", pady=(0, 10))
+        self.login_button.pack(fill="x", pady=(0, 16))
         
-        # Forgot password link (placeholder)
+        # Forgot password text with modern styling
         forgot_label = ctk.CTkLabel(
-            form_frame,
+            content_frame,
             text="שכחת סיסמה? פנה למנהל המערכת",
-            font=ctk.CTkFont(family="Heebo", size=12),
-            text_color="gray"
+            font=ctk.CTkFont(family="Assistant", size=13),
+            text_color=current_theme['text_tertiary']
         )
-        forgot_label.pack(pady=(10, 0))
+        forgot_label.pack(pady=(16, 0))
     
-    def create_theme_toggle(self, parent):
-        """Create theme toggle button"""
-        theme_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        theme_frame.pack(pady=10)
+    def create_modern_theme_toggle(self, parent):
+        """Create modern theme toggle button"""
+        theme_container = ctk.CTkFrame(parent, fg_color="transparent")
+        theme_container.pack(side="bottom", anchor="w", padx=20, pady=20)
         
-        current_theme = self.settings_manager.get('theme_mode', 'light')
-        theme_text = "מצב כהה" if current_theme == 'light' else "מצב בהיר"
+        current_theme_name = self.theme_manager.current_color_theme
+        theme_text = "🔴 עבור לנושא אדום" if current_theme_name == 'blue' else "🔵 עבור לנושא כחול"
         
-        self.theme_button = ctk.CTkButton(
-            theme_frame,
+        self.theme_button = self.theme_manager.create_modern_button(
+            theme_container,
             text=theme_text,
-            font=ctk.CTkFont(family="Heebo", size=12),
-            width=100,
-            height=30,
+            style="outline",
+            size="small",
+            width=160,
             command=self.toggle_theme
         )
         self.theme_button.pack()
     
-    def create_footer(self, parent):
-        """Create footer section"""
+    def create_modern_footer(self, parent):
+        """Create modern footer section"""
         footer_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        footer_frame.pack(side="bottom", pady=10)
+        footer_frame.pack(side="bottom", pady=(0, 20))
+        
+        current_theme = self.theme_manager.get_current_theme()
         
         version_label = ctk.CTkLabel(
             footer_frame,
-            text="גרסה 1.0.0",
-            font=ctk.CTkFont(family="Heebo", size=10),
-            text_color="gray"
+            text="גרסה 2.0",
+            font=ctk.CTkFont(family="Assistant", size=12),
+            text_color=current_theme['text_tertiary']
         )
         version_label.pack()
         
         company_label = ctk.CTkLabel(
             footer_frame,
             text="© Panel Kitchens 2024",
-            font=ctk.CTkFont(family="Heebo", size=10),
-            text_color="gray"
+            font=ctk.CTkFont(family="Assistant", size=12, weight="bold"),
+            text_color=current_theme['text_tertiary']
         )
         company_label.pack()
     
     def handle_login(self):
-        """Handle login attempt"""
+        """Handle login attempt with modern feedback"""
         username = self.username_entry.get().strip()
         password = self.password_entry.get()
         
@@ -248,8 +336,8 @@ class LoginWindow:
             messagebox.showerror("שגיאה", "אנא הזן שם משתמש וסיסמה")
             return
         
-        # Disable login button during authentication
-        self.login_button.configure(state="disabled", text="מתחבר...")
+        # Modern loading state
+        self.login_button.configure(state="disabled", text="מתחבר... ⏳")
         
         # Perform authentication in background thread
         threading.Thread(target=self.authenticate, args=(username, password), daemon=True).start()
@@ -268,7 +356,7 @@ class LoginWindow:
     def handle_auth_result(self, user: Optional[Dict[str, Any]]):
         """Handle authentication result"""
         # Re-enable login button
-        self.login_button.configure(state="normal", text="כניסה")
+        self.login_button.configure(state="normal", text="כניסה למערכת")
         
         if user:
             # Clear password field
@@ -283,25 +371,39 @@ class LoginWindow:
     def handle_auth_error(self, error: str):
         """Handle authentication error"""
         # Re-enable login button
-        self.login_button.configure(state="normal", text="כניסה")
+        self.login_button.configure(state="normal", text="כניסה למערכת")
         
         messagebox.showerror("שגיאה", f"שגיאה בהתחברות: {error}")
         self.on_error(error)
     
     def toggle_theme(self):
-        """Toggle between light and dark theme"""
-        current_theme = self.settings_manager.get('theme_mode', 'light')
-        new_theme = 'dark' if current_theme == 'light' else 'light'
+        """Toggle between blue and red themes"""
+        current_theme_name = self.theme_manager.current_color_theme
+        new_theme_name = 'red' if current_theme_name == 'blue' else 'blue'
         
-        # Update settings
-        self.settings_manager.set('theme_mode', new_theme)
-        
-        # Apply theme
-        ctk.set_appearance_mode(new_theme)
+        # Switch theme
+        self.theme_manager.set_theme(new_theme_name)
         
         # Update button text
-        theme_text = "מצב כהה" if new_theme == 'light' else "מצב בהיר"
+        theme_text = "🔴 עבור לנושא אדום" if new_theme_name == 'blue' else "🔵 עבור לנושא כחול"
         self.theme_button.configure(text=theme_text)
+        
+        # Update window icon
+        self.set_window_icon()
+        
+        # Recreate UI with new theme
+        self.refresh_ui()
+    
+    def refresh_ui(self):
+        """Refresh UI with new theme colors"""
+        # Clear and recreate UI
+        for widget in self.window.winfo_children():
+            widget.destroy()
+        
+        self.create_modern_widgets()
+        
+        # Restore focus
+        self.window.after(100, self.username_entry.focus_set)
     
     def show(self):
         """Show the login window"""

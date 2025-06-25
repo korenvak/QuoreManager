@@ -1,5 +1,5 @@
 """
-Quotes Management Page for Kitchen Quote Management System
+Quotes Management Page for Kitchen Quote Management System - Modern Professional Design
 Complete implementation with CRUD operations, search, and quote creation wizard
 """
 
@@ -12,9 +12,11 @@ import json
 import tempfile
 import os
 from utils.permissions import PermissionManager
+from styling.theme_system import ModernThemeManager, THEMES
+from config.settings import SettingsManager
 
 class QuotesPage:
-    """Complete quotes management page"""
+    """Modern professional quotes management page"""
     
     def __init__(self, parent, db_manager, current_user):
         self.parent = parent
@@ -30,108 +32,136 @@ class QuotesPage:
         # Initialize permission manager
         self.permission_manager = PermissionManager(db_manager)
         
+        # Initialize theme system
+        self.settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(self.settings_manager)
+        self.theme = self.theme_manager.get_current_theme()
+        
     def create_content(self):
-        """Create quotes page content"""
+        """Create modern professional quotes page content"""
         # Clear existing content
         for widget in self.parent.winfo_children():
             widget.destroy()
         
-        # Main container with clean white background
+        # Main container with gradient background
         main_frame = ctk.CTkScrollableFrame(
             self.parent,
-            fg_color="#FFFFFF",
-            corner_radius=0
+            fg_color=self.theme['bg_secondary'],
+            corner_radius=0,
+            scrollbar_button_color=self.theme['primary_light'],
+            scrollbar_button_hover_color=self.theme['primary']
         )
         main_frame.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Inner container with padding
-        content_frame = ctk.CTkFrame(
-            main_frame,
-            fg_color="transparent"
-        )
-        content_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # Inner container with compact spacing
+        inner_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        inner_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
         
-        # Header section
-        header_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 10))
+        # Professional page header
+        self.create_modern_header(inner_frame)
         
-        # Title
-        title_label = ctk.CTkLabel(
-            header_frame,
-            text="ניהול הצעות מחיר",
-            font=ctk.CTkFont(family="Assistant", size=32, weight="bold"),
-            text_color="#1F2937",
-            anchor="e"
-        )
-        title_label.pack(anchor="e", pady=(0, 5))
+        # Modern search and actions bar  
+        self.create_modern_search_bar(inner_frame)
         
-        # Search and actions bar
-        actions_frame = ctk.CTkFrame(
-            header_frame,
-            fg_color="#FAFBFF",
-            corner_radius=15,
-            border_width=1,
-            border_color="#E1E8F7"
-        )
-        actions_frame.pack(fill="x", pady=(0, 10))
-        
-        # New quote button
-        new_quote_btn = ctk.CTkButton(
-            actions_frame,
-            text="+ הצעת מחיר חדשה",
-            font=ctk.CTkFont(family="Assistant", size=15, weight="bold"),
-            height=40,
-            fg_color="#3B82F6",
-            hover_color="#1E40AF",
-            corner_radius=12,
-            command=self.start_new_quote_wizard
-        )
-        new_quote_btn.pack(side="right", padx=15, pady=15)
-        
-        # Search frame
-        search_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
-        search_frame.pack(side="right", padx=(0, 10), pady=15)
-        
-        # Search entry
-        self.search_entry = ctk.CTkEntry(
-            search_frame,
-            placeholder_text="חפש הצעת מחיר...",
-            font=ctk.CTkFont(family="Assistant", size=14),
-            width=200,
-            height=35,
-            corner_radius=10,
-            border_width=1,
-            border_color="#E1E8F7"
-        )
-        self.search_entry.pack(side="right", padx=(0, 10))
-        self.search_entry.bind("<KeyRelease>", self.on_search_changed)
-        
-        # Search button
-        search_btn = ctk.CTkButton(
-            search_frame,
-            text="🔍",
-            font=ctk.CTkFont(size=18),
-            width=35,
-            height=35,
-            fg_color="#3B82F6",
-            hover_color="#1E40AF",
-            corner_radius=10,
-            command=self.apply_filters
-        )
-        search_btn.pack(side="right")
-        
-        # Quotes container – plain frame (outer page already scrollable)
+        # Modern quotes container
         self.quotes_container = ctk.CTkFrame(
-            content_frame,
-            fg_color="#FAFBFF",
-            corner_radius=20,
+            inner_frame,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
             border_width=1,
-            border_color="#E1E8F7"
+            border_color=self.theme['border_light']
         )
         self.quotes_container.pack(fill="both", expand=True)
         
         # Load quotes data
         self.load_quotes()
+    
+    def create_modern_header(self, parent):
+        """Create modern professional page header"""
+        header_card = ctk.CTkFrame(
+            parent, 
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_width=1,
+            border_color=self.theme['border_light']
+        )
+        header_card.pack(fill="x", pady=(0, self.theme_manager.get_spacing('xl')))
+        
+        header_frame = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            header_frame,
+            text="ניהול הצעות מחיר",
+            font=self.theme_manager.create_ctk_font('title'),
+            text_color=self.theme['text_primary'],
+            anchor="e"
+        )
+        title_label.pack(anchor="e")
+        
+        # Subtitle
+        subtitle_label = ctk.CTkLabel(
+            header_frame,
+            text="נהל, ערוך וצר הצעות מחיר מקצועיות",
+            font=self.theme_manager.create_ctk_font('body'),
+            text_color=self.theme['text_muted'],
+            anchor="e"
+        )
+        subtitle_label.pack(anchor="e", pady=(self.theme_manager.get_spacing('xs'), 0))
+    
+    def create_modern_search_bar(self, parent):
+        """Create modern search and actions bar"""
+        search_card = ctk.CTkFrame(
+            parent,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_width=1,
+            border_color=self.theme['border_light']
+        )
+        search_card.pack(fill="x", pady=(0, self.theme_manager.get_spacing('xl')))
+        
+        search_frame = ctk.CTkFrame(search_card, fg_color="transparent")
+        search_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # New quote button - using theme colors
+        new_quote_btn = self.theme_manager.create_modern_button(
+            search_frame,
+            text="➕  הצעת מחיר חדשה",
+            style="primary",
+            command=self.start_new_quote_wizard
+        )
+        new_quote_btn.pack(side="right")
+        
+        # Search frame
+        search_container = ctk.CTkFrame(search_frame, fg_color="transparent")
+        search_container.pack(side="right", padx=(0, self.theme_manager.get_spacing('md')))
+        
+        # Search entry
+        self.search_entry = ctk.CTkEntry(
+            search_container,
+            placeholder_text="חפש הצעת מחיר...",
+            font=self.theme_manager.create_ctk_font('body'),
+            width=250,
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=self.theme['border_light'],
+            fg_color=self.theme['bg_card'],
+            text_color=self.theme['text_primary']
+        )
+        self.search_entry.pack(side="right", padx=(0, self.theme_manager.get_spacing('sm')))
+        self.search_entry.bind("<KeyRelease>", self.on_search_changed)
+        
+        # Search button - using theme colors
+        search_btn = self.theme_manager.create_modern_button(
+            search_container,
+            text="🔍",
+            style="secondary",
+            width=40,
+            command=self.apply_filters
+        )
+        search_btn.pack(side="right")
     
     def create_header(self, parent):
         """Create header with title, search, filters, and actions"""
@@ -152,14 +182,13 @@ class QuotesPage:
         actions_frame.pack(fill="x", pady=(0, 10))
         
         # New quote button
-        new_quote_button = ctk.CTkButton(
+        new_quote_button = self.theme_manager.create_modern_button(
             actions_frame,
             text="הצעת מחיר חדשה",
-            font=ctk.CTkFont(family="Heebo", size=16, weight="bold"),
-            height=45,
-            command=self.start_new_quote_wizard,
-            fg_color="#6366F1",
-            hover_color="#4F46E5"
+            style="primary",
+            size="large",
+            width=180,
+            command=self.start_new_quote_wizard
         )
         new_quote_button.pack(side="right", padx=20, pady=15)
         
@@ -681,21 +710,23 @@ class QuotesPage:
             error_frame = ctk.CTkFrame(self.quotes_container)
             error_frame.pack(fill="x", padx=20, pady=20)
             
+            current_theme = self.theme_manager.get_current_theme()
             error_label = ctk.CTkLabel(
                 error_frame,
                 text=f"שגיאה בטעינת הצעות מחיר:\n{error}",
                 font=ctk.CTkFont(family="Heebo", size=16),
-                text_color="#EF4444",
+                text_color=current_theme['error'],
                 justify="center"
             )
             error_label.pack(pady=30)
             
-            retry_button = ctk.CTkButton(
+            retry_button = self.theme_manager.create_modern_button(
                 error_frame,
                 text="נסה שוב",
-                command=self.load_quotes,
-                fg_color="#3B82F6",
-                hover_color="#2563EB"
+                style="primary",
+                size="medium",
+                width=120,
+                command=self.load_quotes
             )
             retry_button.pack(pady=(0, 20))
     
@@ -750,9 +781,10 @@ class QuotesPage:
             border_color="#E1E8F7"
         )
         card.pack(fill="x", padx=20, pady=12)
-        # Add hover effect
+        # Add hover effect with theme colors
+        current_theme = self.theme_manager.get_current_theme()
         def on_enter(event):
-            card.configure(border_color="#3B82F6")
+            card.configure(border_color=current_theme['primary'])
         def on_leave(event):
             card.configure(border_color="#E1E8F7")
         card.bind("<Enter>", on_enter)
@@ -779,12 +811,12 @@ class QuotesPage:
         # Quote details
         details_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
         details_frame.pack(fill="x", pady=(8, 0))
-        # Total amount
+        # Total amount with theme color
         total_label = ctk.CTkLabel(
             details_frame,
             text=f"סה״כ: ₪{quote.get('total_amount', 0):,.2f}",
             font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
-            text_color="#3B82F6",
+            text_color=current_theme['primary'],
             anchor="e"
         )
         total_label.pack(anchor="e")
@@ -820,74 +852,69 @@ class QuotesPage:
             anchor="e"
         )
         items_label.pack(anchor="e", pady=(2, 0))
-        # Right side - actions (horizontal layout)
+        # Right side - actions (single row layout with theme colors)
         actions_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
         actions_frame.pack(side="left", padx=(0, 20))
-        # Button configuration
-        button_config = {
-            'width': 80,
-            'height': 32,
-            'font': ctk.CTkFont(family="Assistant", size=12, weight="bold"),
-            'corner_radius': 8
-        }
-        # Row 1 - Primary actions
-        row1_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
-        row1_frame.pack(fill="x", pady=(0, 5))
+        
+        # All buttons in single row with professional styling
+        buttons_container = ctk.CTkFrame(actions_frame, fg_color="transparent")
+        buttons_container.pack(fill="x")
+        
+        # Delete button (only if user can delete) - rightmost for caution
+        if quote.get('can_delete', False):
+            delete_button = self.theme_manager.create_modern_button(
+                buttons_container,
+                text="מחיקה",
+                style="danger",
+                size="small",
+                width=80,
+                command=lambda q=quote: self.delete_quote(q)
+            )
+            delete_button.pack(side="right", padx=(5, 0))
+        
+        # Generate PDF button - success style for positive action
+        pdf_button = self.theme_manager.create_modern_button(
+            buttons_container,
+            text="הורדה",
+            style="success",
+            size="small",
+            width=80,
+            command=lambda q=quote: self.generate_pdf(q)
+        )
+        pdf_button.pack(side="right", padx=(5, 0))
+        
+        # View PDF button - secondary style
+        view_pdf_button = self.theme_manager.create_modern_button(
+            buttons_container,
+            text="צפייה PDF",
+            style="secondary",
+            size="small",
+            width=90,
+            command=lambda q=quote: self.view_pdf(q)
+        )
+        view_pdf_button.pack(side="right", padx=(5, 0))
+        
         # View/Edit button (only if user can edit)
         if quote.get('can_edit', False):
-            edit_button = ctk.CTkButton(
-                row1_frame,
+            edit_button = self.theme_manager.create_modern_button(
+                buttons_container,
                 text="עריכה",
-                fg_color="#3B82F6",
-                hover_color="#1E40AF",
-                command=lambda q=quote: self.edit_quote(q),
-                **button_config
+                style="primary",
+                size="small",
+                width=80,
+                command=lambda q=quote: self.edit_quote(q)
             )
-            edit_button.pack(side="right", padx=(0, 5))
+            edit_button.pack(side="right", padx=(5, 0))
         else:
-            view_button = ctk.CTkButton(
-                row1_frame,
+            view_button = self.theme_manager.create_modern_button(
+                buttons_container,
                 text="צפייה",
-                fg_color="#6B7280",
-                hover_color="#4B5563",
-                command=lambda q=quote: self.view_quote(q),
-                **button_config
+                style="outline",
+                size="small",
+                width=80,
+                command=lambda q=quote: self.view_quote(q)
             )
-            view_button.pack(side="right", padx=(0, 5))
-        # View PDF button
-        view_pdf_button = ctk.CTkButton(
-            row1_frame,
-            text="צפייה PDF",
-            fg_color="#8B5CF6",
-            hover_color="#7C3AED",
-            command=lambda q=quote: self.view_pdf(q),
-            **button_config
-        )
-        view_pdf_button.pack(side="right")
-        # Row 2 - Secondary actions
-        row2_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
-        row2_frame.pack(fill="x")
-        # Generate PDF button
-        pdf_button = ctk.CTkButton(
-            row2_frame,
-            text="הורדה",
-            fg_color="#10B981",
-            hover_color="#059669",
-            command=lambda q=quote: self.generate_pdf(q),
-            **button_config
-        )
-        pdf_button.pack(side="right", padx=(0, 5))
-        # Delete button (only if user can delete)
-        if quote.get('can_delete', False):
-            delete_button = ctk.CTkButton(
-                row2_frame,
-                text="מחיקה",
-                fg_color="#EF4444",
-                hover_color="#DC2626",
-                command=lambda q=quote: self.delete_quote(q),
-                **button_config
-            )
-            delete_button.pack(side="right")
+            view_button.pack(side="right", padx=(5, 0))
 
 
 # QuoteWizard and QuoteViewer are now implemented in separate files 

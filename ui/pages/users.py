@@ -1,5 +1,5 @@
 """
-Users Management Page for Kitchen Quote Management System
+Users Management Page for Kitchen Quote Management System - Modern Professional Design
 Admin-only page for managing user accounts and permissions
 """
 
@@ -7,15 +7,22 @@ import customtkinter as ctk
 from tkinter import messagebox
 import threading
 from typing import Dict, Any, List, Optional
+from styling.theme_system import ModernThemeManager, THEMES
+from config.settings import SettingsManager
 
 class UsersPage:
-    """Users management page - Admin only"""
+    """Modern professional users management page - Admin only"""
     
     def __init__(self, parent, db_manager, current_user):
         self.parent = parent
         self.db_manager = db_manager
         self.current_user = current_user
         self.users_data = []
+        
+        # Initialize theme system
+        self.settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(self.settings_manager)
+        self.theme = self.theme_manager.get_current_theme()
         
         # Check if user has permission to access this page
         if self.current_user.get('role') != 'admin':
@@ -25,106 +32,123 @@ class UsersPage:
         self.users_container = None
         
     def create_content(self):
-        """Create users page content"""
+        """Create modern professional users page content"""
         # Check permission again
         if self.current_user.get('role') != 'admin':
             self.show_access_denied()
             return
             
-        # Main container with clean white background and blue border
+        # Main container with gradient background
         main_frame = ctk.CTkScrollableFrame(
             self.parent,
-            fg_color="#FFFFFF",
+            fg_color=self.theme['bg_secondary'],
             corner_radius=0,
-            border_width=1,
-            border_color="#E1E8F7"
+            scrollbar_button_color=self.theme['primary_light'],
+            scrollbar_button_hover_color=self.theme['primary']
         )
         main_frame.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Inner container with padding and blue border
-        content_frame = ctk.CTkFrame(
-            main_frame,
-            fg_color="#FFFFFF",
-            border_width=1,
-            border_color="#E1E8F7"
-        )
-        content_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # Inner container with compact spacing
+        inner_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        inner_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
         
-        # Page header
-        self.create_header(content_frame)
+        # Professional page header
+        self.create_modern_header(inner_frame)
         
-        # Users list
-        self.create_users_list(content_frame)
+        # Modern users list
+        self.create_users_list(inner_frame)
         
         # Load users data
         self.load_users()
     
     def show_access_denied(self):
-        """Show access denied message for non-admin users"""
-        access_frame = ctk.CTkFrame(self.parent)
-        access_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        """Show modern access denied message for non-admin users"""
+        access_frame = ctk.CTkFrame(
+            self.parent,
+            fg_color=self.theme['bg_secondary']
+        )
+        access_frame.pack(fill="both", expand=True, padx=0, pady=0)
+        
+        # Access denied card
+        denied_card = ctk.CTkFrame(
+            access_frame,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_width=1,
+            border_color=self.theme['border_light']
+        )
+        denied_card.pack(expand=True, padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('xl'))
         
         # Access denied message
         denied_label = ctk.CTkLabel(
-            access_frame,
+            denied_card,
             text="🚫\n\nגישה מוגבלת\n\nדף זה מיועד למנהלי מערכת בלבד",
-            font=ctk.CTkFont(family="Heebo", size=24, weight="bold"),
+            font=self.theme_manager.create_ctk_font('heading'),
             text_color="#EF4444",
             justify="center"
         )
-        denied_label.pack(expand=True)
+        denied_label.pack(expand=True, padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('xl'))
     
-    def create_header(self, parent):
-        """Create page header with actions"""
-        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 10))
+    def create_modern_header(self, parent):
+        """Create modern professional page header with actions"""
+        # Header card
+        header_card = ctk.CTkFrame(
+            parent, 
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_width=1,
+            border_color=self.theme['border_light']
+        )
+        header_card.pack(fill="x", pady=(0, self.theme_manager.get_spacing('xl')))
+        
+        header_frame = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Title section
+        title_section = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_section.pack(fill="x", pady=(0, self.theme_manager.get_spacing('md')))
         
         # Title
         title_label = ctk.CTkLabel(
-            header_frame,
+            title_section,
             text="ניהול משתמשים",
-            font=ctk.CTkFont(family="Heebo", size=28, weight="bold"),
+            font=self.theme_manager.create_ctk_font('title'),
+            text_color=self.theme['text_primary'],
             anchor="e"
         )
         title_label.pack(anchor="e")
         
         # Subtitle
         subtitle_label = ctk.CTkLabel(
-            header_frame,
+            title_section,
             text="ניהול משתמשי המערכת והרשאותיהם",
-            font=ctk.CTkFont(family="Heebo", size=16),
-            text_color="gray",
+            font=self.theme_manager.create_ctk_font('body'),
+            text_color=self.theme['text_muted'],
             anchor="e"
         )
-        subtitle_label.pack(anchor="e", pady=(5, 0))
+        subtitle_label.pack(anchor="e", pady=(self.theme_manager.get_spacing('xs'), 0))
         
         # Action buttons
         actions_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        actions_frame.pack(anchor="e", pady=(15, 0))
+        actions_frame.pack(anchor="e")
         
-        # Add new user button
-        add_user_btn = ctk.CTkButton(
+        # Refresh button - using theme colors
+        refresh_btn = self.theme_manager.create_modern_button(
             actions_frame,
-            text="➕ משתמש חדש",
-            font=ctk.CTkFont(family="Heebo", size=14, weight="bold"),
-            height=40,
-            fg_color="#10B981",
-            hover_color="#059669",
-            command=self.add_new_user
-        )
-        add_user_btn.pack(side="right", padx=(0, 10))
-        
-        # Refresh button
-        refresh_btn = ctk.CTkButton(
-            actions_frame,
-            text="🔄 רענן",
-            font=ctk.CTkFont(family="Heebo", size=14),
-            height=40,
-            fg_color="#3B82F6",
-            hover_color="#2563EB",
+            text="🔄  רענן",
+            style="primary",
             command=self.load_users
         )
         refresh_btn.pack(side="right")
+        
+        # Add new user button - using theme colors  
+        add_user_btn = self.theme_manager.create_modern_button(
+            actions_frame,
+            text="➕  משתמש חדש",
+            style="secondary",
+            command=self.add_new_user
+        )
+        add_user_btn.pack(side="right", padx=(0, self.theme_manager.get_spacing('sm')))
     
     def create_users_list(self, parent):
         """Create users list container"""
@@ -226,46 +250,39 @@ class UsersPage:
             actions_frame = ctk.CTkFrame(card, fg_color="#FFFFFF")
             actions_frame.pack(fill="x", padx=20, pady=(0, 15))
             
-            # Edit button
-            edit_btn = ctk.CTkButton(
+            # Edit button - using theme colors
+            edit_btn = self.theme_manager.create_modern_button(
                 actions_frame,
                 text="ערוך",
-                font=ctk.CTkFont(family="Heebo", size=12),
-                height=30,
+                style="primary",
+                size="small",
                 width=80,
-                fg_color="#3B82F6",
-                hover_color="#2563EB",
                 command=lambda u=user: self.edit_user(u)
             )
             edit_btn.pack(side="right", padx=(5, 0))
             
-            # Toggle active status button
+            # Toggle active status button - using theme colors
             status_text = "השבת" if is_active else "הפעל"
-            status_color = "#EF4444" if is_active else "#10B981"
-            status_hover = "#DC2626" if is_active else "#059669"
+            status_style = "danger" if is_active else "success"
             
-            status_btn = ctk.CTkButton(
+            status_btn = self.theme_manager.create_modern_button(
                 actions_frame,
                 text=status_text,
-                font=ctk.CTkFont(family="Heebo", size=12),
-                height=30,
+                style=status_style,
+                size="small",
                 width=80,
-                fg_color=status_color,
-                hover_color=status_hover,
                 command=lambda u=user: self.toggle_user_status(u)
             )
             status_btn.pack(side="right", padx=(5, 0))
             
-            # Delete button (only for non-admin users)
+            # Delete button (only for non-admin users) - using theme colors
             if role != 'admin':
-                delete_btn = ctk.CTkButton(
+                delete_btn = self.theme_manager.create_modern_button(
                     actions_frame,
                     text="מחק",
-                    font=ctk.CTkFont(family="Heebo", size=12),
-                    height=30,
+                    style="danger",
+                    size="small", 
                     width=80,
-                    fg_color="#EF4444",
-                    hover_color="#DC2626",
                     command=lambda u=user: self.delete_user(u)
                 )
                 delete_btn.pack(side="right", padx=(5, 0))
@@ -357,7 +374,7 @@ class UsersPage:
 
 
 class UserDialog:
-    """Dialog for adding/editing users"""
+    """Modern dialog for adding/editing users with beautiful design"""
     
     def __init__(self, parent, title: str, user_data: Optional[Dict] = None, db_manager=None, on_success=None):
         self.parent = parent
@@ -366,6 +383,12 @@ class UserDialog:
         self.db_manager = db_manager
         self.on_success = on_success
         self.dialog = None
+        
+        # Import theme manager
+        from styling.theme_system import ModernThemeManager
+        from config.settings import SettingsManager
+        settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(settings_manager)
         
         # Form variables
         self.username_var = ctk.StringVar()
@@ -380,173 +403,301 @@ class UserDialog:
         self.create_dialog()
     
     def create_dialog(self):
-        """Create user dialog"""
+        """Create modern user dialog with beautiful design"""
+        current_theme = self.theme_manager.get_current_theme()
+        
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title(self.title)
         
-        # Make dialog responsive to screen size
-        screen_width = self.dialog.winfo_screenwidth()
-        screen_height = self.dialog.winfo_screenheight()
-        
-        # Calculate appropriate dialog size (35% of screen width, 85% of height)
-        dialog_width = min(500, int(screen_width * 0.35))
-        dialog_height = min(700, int(screen_height * 0.85))
-        
-        # Ensure minimum sizes
-        dialog_width = max(450, dialog_width)
-        dialog_height = max(600, dialog_height)
+        # Modern sizing and positioning
+        dialog_width = 520
+        dialog_height = 700
         
         self.dialog.geometry(f"{dialog_width}x{dialog_height}")
-        self.dialog.resizable(True, True)  # Allow resizing
-        
-        # Set minimum window size
-        self.dialog.minsize(450, 600)
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(480, 650)
         
         # Center dialog
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Main container with white background and blue border
-        main_frame = ctk.CTkScrollableFrame(self.dialog, fg_color="#FFFFFF", border_width=1, border_color="#E1E8F7")
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # Title
-        title_label = ctk.CTkLabel(
-            main_frame,
-            text=self.title,
-            font=ctk.CTkFont(family="Heebo", size=24, weight="bold")
+        # Modern main container with beautiful styling
+        main_container = ctk.CTkFrame(
+            self.dialog,
+            corner_radius=0,
+            fg_color=("#F8FAFC", "#1E293B")
         )
-        title_label.pack(pady=(0, 30))
+        main_container.pack(fill="both", expand=True)
         
-        # Form fields
-        self.create_form_fields(main_frame)
+        # Beautiful header with gradient
+        self.create_modern_header(main_container)
         
-        # Buttons
-        self.create_buttons(main_frame)
+        # Main content card
+        self.create_content_card(main_container)
         
         # Load existing data if editing
         if self.user_data:
             self.load_user_data()
     
+    def create_modern_header(self, parent):
+        """Create beautiful header with gradient background"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        header_frame = ctk.CTkFrame(
+            parent,
+            corner_radius=0,
+            height=120,
+            fg_color=current_theme['primary']
+        )
+        header_frame.pack(fill="x")
+        header_frame.pack_propagate(False)
+        
+        # Header content
+        header_content = ctk.CTkFrame(header_frame, fg_color="transparent")
+        header_content.pack(expand=True, fill="both")
+        
+        # Icon
+        icon_text = "👥" if not self.user_data else "✏️"
+        icon_label = ctk.CTkLabel(
+            header_content,
+            text=icon_text,
+            font=ctk.CTkFont(size=40),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        icon_label.pack(pady=(20, 10))
+        
+        # Title with modern typography
+        title_label = ctk.CTkLabel(
+            header_content,
+            text=self.title,
+            font=ctk.CTkFont(family="Assistant", size=24, weight="bold"),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        title_label.pack()
+        
+        # Subtitle
+        subtitle_text = "הוספת משתמש חדש למערכת" if not self.user_data else "עריכת פרטי המשתמש"
+        subtitle_label = ctk.CTkLabel(
+            header_content,
+            text=subtitle_text,
+            font=ctk.CTkFont(family="Assistant", size=14),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        subtitle_label.pack(pady=(5, 0))
+    
+    def create_content_card(self, parent):
+        """Create main content card with form fields"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        # Card container
+        card_frame = ctk.CTkFrame(
+            parent,
+            corner_radius=24,
+            fg_color=("#FFFFFF", "#334155"),
+            border_width=1,
+            border_color=("#E2E8F0", "#475569")
+        )
+        card_frame.pack(fill="both", expand=True, padx=25, pady=(25, 25))
+        
+        # Scrollable content
+        main_frame = ctk.CTkScrollableFrame(card_frame, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Form fields
+        self.create_form_fields(main_frame)
+        
+        # Action buttons
+        self.create_modern_buttons(main_frame)
+    
     def create_form_fields(self, parent):
-        """Create form input fields"""
-        fields_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", border_width=1, border_color="#E1E8F7")
-        fields_frame.pack(fill="x", pady=(0, 30))
+        """Create modern form input fields"""
+        current_theme = self.theme_manager.get_current_theme()
         
-        # Username
-        self.create_field(fields_frame, "שם משתמש *", self.username_var, "username")
+        # Main form container
+        fields_frame = ctk.CTkFrame(
+            parent,
+            corner_radius=16,
+            fg_color=current_theme['card_bg'],
+            border_width=1,
+            border_color=current_theme['border']
+        )
+        fields_frame.pack(fill="x", pady=(0, 25))
         
-        # Password (only for new users)
+        # Form title
+        form_title = ctk.CTkLabel(
+            fields_frame,
+            text="פרטי המשתמש",
+            font=ctk.CTkFont(family="Assistant", size=18, weight="bold"),
+            text_color=current_theme['text_primary'],
+            anchor="e"
+        )
+        form_title.pack(anchor="e", padx=20, pady=(20, 15))
+        
+        # Fields container
+        fields_container = ctk.CTkFrame(fields_frame, fg_color="transparent")
+        fields_container.pack(fill="x", padx=20, pady=(0, 20))
+        
+        # Username field
+        self.create_modern_field(fields_container, "שם משתמש *", self.username_var, "username")
+        
+        # Password field (only for new users)
         if not self.user_data:
-            self.create_field(fields_frame, "סיסמה *", self.password_var, "password", show_password=True)
+            self.create_modern_field(fields_container, "סיסמה *", self.password_var, "password", show_password=True)
+        
+        # Personal details section
+        section_label = ctk.CTkLabel(
+            fields_container,
+            text="פרטים אישיים",
+            font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
+            text_color=current_theme['text_primary'],
+            anchor="e"
+        )
+        section_label.pack(anchor="e", pady=(20, 10))
         
         # First name
-        self.create_field(fields_frame, "שם פרטי", self.first_name_var, "first_name")
+        self.create_modern_field(fields_container, "שם פרטי", self.first_name_var, "first_name")
         
         # Last name
-        self.create_field(fields_frame, "שם משפחה", self.last_name_var, "last_name")
+        self.create_modern_field(fields_container, "שם משפחה", self.last_name_var, "last_name")
         
         # Email
-        self.create_field(fields_frame, "דואר אלקטרוני", self.email_var, "email")
+        self.create_modern_field(fields_container, "דואר אלקטרוני", self.email_var, "email")
+        
+        # Role and permissions section
+        section_label2 = ctk.CTkLabel(
+            fields_container,
+            text="תפקיד והרשאות",
+            font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
+            text_color=current_theme['text_primary'],
+            anchor="e"
+        )
+        section_label2.pack(anchor="e", pady=(20, 10))
         
         # Role
-        self.create_role_field(fields_frame)
+        self.create_modern_role_field(fields_container)
         
         # Max discount
-        self.create_field(fields_frame, "הנחה מקסימלית (%)", self.max_discount_var, "max_discount")
+        self.create_modern_field(fields_container, "הנחה מקסימלית (%)", self.max_discount_var, "max_discount")
         
         # Active status
-        self.create_checkbox_field(fields_frame, "משתמש פעיל", self.is_active_var)
+        self.create_modern_checkbox_field(fields_container, "משתמש פעיל", self.is_active_var)
     
-    def create_field(self, parent, label: str, variable: ctk.StringVar, field_key: str, show_password: bool = False):
-        """Create individual form field"""
-        field_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", border_width=1, border_color="#E1E8F7")
+    def create_modern_field(self, parent, label: str, variable: ctk.StringVar, field_key: str, show_password: bool = False):
+        """Create individual modern form field"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        # Field container
+        field_frame = ctk.CTkFrame(parent, fg_color="transparent")
         field_frame.pack(fill="x", pady=10)
         
-        # Label
+        # Label with modern styling
         field_label = ctk.CTkLabel(
             field_frame,
             text=label,
-            font=ctk.CTkFont(family="Heebo", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=current_theme['text_primary'],
             anchor="e"
         )
-        field_label.pack(anchor="e")
+        field_label.pack(anchor="e", pady=(0, 6))
         
-        # Input field
+        # Input field with modern styling
         entry = ctk.CTkEntry(
             field_frame,
             textvariable=variable,
-            font=ctk.CTkFont(family="Heebo", size=14),
-            height=40,
+            font=ctk.CTkFont(family="Assistant", size=14),
+            height=46,
+            corner_radius=12,
+            border_width=2,
+            border_color=current_theme['border'],
+            fg_color=current_theme['input_bg'],
+            text_color=current_theme['text_primary'],
             show="*" if show_password else None
         )
-        entry.pack(fill="x", pady=(5, 0))
+        entry.pack(fill="x")
     
-    def create_role_field(self, parent):
-        """Create role selection field"""
-        field_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", border_width=1, border_color="#E1E8F7")
+    def create_modern_role_field(self, parent):
+        """Create modern role selection field"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        # Field container
+        field_frame = ctk.CTkFrame(parent, fg_color="transparent")
         field_frame.pack(fill="x", pady=10)
         
         # Label
         role_label = ctk.CTkLabel(
             field_frame,
             text="תפקיד *",
-            font=ctk.CTkFont(family="Heebo", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=current_theme['text_primary'],
             anchor="e"
         )
-        role_label.pack(anchor="e")
+        role_label.pack(anchor="e", pady=(0, 6))
         
-        # Role selection
+        # Role selection with modern styling
         role_menu = ctk.CTkOptionMenu(
             field_frame,
             variable=self.role_var,
             values=["admin", "manager", "employee", "viewer"],
-            font=ctk.CTkFont(family="Heebo", size=14),
-            height=40
+            font=ctk.CTkFont(family="Assistant", size=14),
+            height=46,
+            corner_radius=12,
+            fg_color=current_theme['primary'],
+            button_color=current_theme['primary'],
+            button_hover_color=current_theme['primary_hover'],
+            dropdown_fg_color=current_theme['card_bg'],
+            dropdown_text_color=current_theme['text_primary']
         )
-        role_menu.pack(fill="x", pady=(5, 0))
+        role_menu.pack(fill="x")
     
-    def create_checkbox_field(self, parent, label: str, variable: ctk.BooleanVar):
-        """Create checkbox field"""
-        field_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", border_width=1, border_color="#E1E8F7")
-        field_frame.pack(fill="x", pady=10)
+    def create_modern_checkbox_field(self, parent, label: str, variable: ctk.BooleanVar):
+        """Create modern checkbox field"""
+        current_theme = self.theme_manager.get_current_theme()
         
+        # Field container
+        field_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        field_frame.pack(fill="x", pady=15)
+        
+        # Checkbox with modern styling
         checkbox = ctk.CTkCheckBox(
             field_frame,
             text=label,
             variable=variable,
-            font=ctk.CTkFont(family="Heebo", size=14)
+            font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=current_theme['text_primary'],
+            fg_color=current_theme['primary'],
+            hover_color=current_theme['primary_hover'],
+            checkmark_color=("#FFFFFF", "#F1F5F9")
         )
         checkbox.pack(anchor="e")
     
-    def create_buttons(self, parent):
-        """Create action buttons"""
-        buttons_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", border_width=1, border_color="#E1E8F7")
-        buttons_frame.pack(fill="x", pady=20)
+    def create_modern_buttons(self, parent):
+        """Create modern action buttons with gradients and shadows"""
+        # Buttons container
+        buttons_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        buttons_frame.pack(fill="x", pady=25)
         
         # Cancel button
-        cancel_button = ctk.CTkButton(
+        cancel_button = self.theme_manager.create_modern_button(
             buttons_frame,
             text="ביטול",
-            font=ctk.CTkFont(family="Heebo", size=16),
-            height=45,
-            width=120,
-            fg_color="gray",
-            hover_color="#6B7280",
+            style="outline",
+            size="large",
+            width=130,
             command=self.cancel_dialog
         )
         cancel_button.pack(side="left")
         
         # Save button
         save_text = "עדכן משתמש" if self.user_data else "הוסף משתמש"
-        save_button = ctk.CTkButton(
+        save_button = self.theme_manager.create_modern_button(
             buttons_frame,
             text=save_text,
-            font=ctk.CTkFont(family="Heebo", size=16, weight="bold"),
-            height=45,
+            style="primary",
+            size="large",
             width=150,
-            fg_color="#10B981",
-            hover_color="#059669",
             command=self.save_user
         )
         save_button.pack(side="right")

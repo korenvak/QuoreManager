@@ -1,6 +1,6 @@
 """
-Modern Dashboard Window for Kitchen Quote Management System
-Features: Right-side collapsible sidebar, hover animations, clean design
+Modern Dashboard Window for Kitchen Quote Management System V2.0
+Features: Left-side professional sidebar, modern theme system, clean design
 """
 
 import customtkinter as ctk
@@ -10,63 +10,30 @@ from typing import Callable, Dict, Any, Optional
 from pathlib import Path
 from datetime import datetime
 from utils.permissions import PermissionManager
+from styling.theme_system import ModernThemeManager
 
 class DashboardWindow:
-    """Modern dashboard with right-side collapsible sidebar"""
+    """Modern dashboard with left-side professional sidebar"""
     
     def __init__(self, current_user: Dict[str, Any], db_manager, settings_manager, on_logout: Callable, on_switch_user: Optional[Callable] = None):
         self.current_user = current_user
         self.db_manager = db_manager
         self.settings_manager = settings_manager
         self.on_logout = on_logout
-        self.on_switch_user = on_switch_user or on_logout  # Default to logout if not provided
+        self.on_switch_user = on_switch_user or on_logout
         
         # Initialize permission manager
         self.permission_manager = PermissionManager(db_manager)
         
-        # Modern colors - Clean white/light-blue theme
-        self.light_colors = {
-            'bg_primary': '#FFFFFF',
-            'bg_secondary': '#FAFBFF',
-            'bg_glass': '#F8FAFC',
-            'bg_sidebar': '#F1F5F9',
-            'bg_sidebar_collapsed': '#FCFCFD',
-            'bg_sidebar_hover': '#EBF4FF',
-            'accent_primary': '#3B82F6',
-            'accent_secondary': '#1E40AF',
-            'accent_red': '#EF4444',
-            'accent_light': '#DBEAFE',
-            'text_primary': '#1F2937',
-            'text_secondary': '#6B7280',
-            'text_muted': '#9CA3AF',
-            'border': '#E1E8F7',
-            'shadow': '#F0F4F8',
-        }
+        # Initialize modern theme system
+        self.theme_manager = ModernThemeManager(settings_manager)
+        self.theme_manager.apply_theme()
         
-        self.dark_colors = {
-            'bg_primary': '#0F172A',
-            'bg_secondary': '#1E293B',
-            'bg_glass': '#1A202C',
-            'bg_sidebar': '#2D3748',
-            'bg_sidebar_collapsed': '#1A1F2E',
-            'bg_sidebar_hover': '#2A3441',
-            'accent_primary': '#60A5FA',
-            'accent_secondary': '#3B82F6',
-            'accent_red': '#F87171',
-            'accent_light': '#1E3A8A',
-            'text_primary': '#F8FAFC',
-            'text_secondary': '#CBD5E1',
-            'text_muted': '#64748B',
-            'border': '#374151',
-            'shadow': '#1F2937',
-        }
+        # Get current theme configuration
+        self.theme = self.theme_manager.get_current_theme()
         
-        # Get current theme colors
-        current_theme = self.settings_manager.get('theme_mode', 'light')
-        self.colors = self.light_colors if current_theme == 'light' else self.dark_colors
-        
-        # Fixed sidebar configuration
-        self.sidebar_width = 280
+        # Sidebar configuration (240px as per specifications)
+        self.sidebar_width = self.theme_manager.get_component_config('sidebar')['width']
         
         # UI components
         self.window = None
@@ -83,12 +50,8 @@ class DashboardWindow:
         self.window = ctk.CTk()
         self.window.title("מערכת ניהול הצעות מטבח - Panel Kitchens")
         
-        # Apply theme
-        current_theme = self.settings_manager.get('theme_mode', 'light')
-        ctk.set_appearance_mode(current_theme)
-        
-        # Pure white background for light mode
-        self.window.configure(fg_color=self.colors['bg_primary'])
+        # Apply modern theme
+        self.window.configure(fg_color=self.theme['bg_primary'])
         
         # Window geometry
         geometry = self.settings_manager.get_window_geometry()
@@ -99,15 +62,15 @@ class DashboardWindow:
         if geometry['maximized']:
             self.window.state('zoomed')
         
-        # Grid layout - content left, sidebar right
-        self.window.grid_columnconfigure(0, weight=1)
-        self.window.grid_columnconfigure(1, weight=0)
+        # Grid layout - content left, sidebar right  
+        self.window.grid_columnconfigure(0, weight=1)  # Content (flexible)
+        self.window.grid_columnconfigure(1, weight=0)  # Sidebar (fixed width)
         self.window.grid_rowconfigure(0, weight=1)
         
         # Set window icon
         self.set_window_icon()
         
-        # Create components
+        # Create components - content first (left), then sidebar (right)
         self.create_content_area()
         self.create_modern_sidebar()
         
@@ -128,94 +91,121 @@ class DashboardWindow:
             pass
     
     def create_content_area(self):
-        """Create modern content area"""
-        # Main content container
+        """Create modern content area with professional gradient design"""
+        # Main content container with gradient background
         self.content_area = ctk.CTkFrame(
             self.window,
-            corner_radius=0,
-            fg_color=self.colors['bg_primary']
+            corner_radius=20,  # Rounded corners like sidebar
+            fg_color=self.theme['bg_secondary'],  # Light gradient base
+            border_width=0
         )
-        self.content_area.grid(row=0, column=0, sticky="nsew")
+        self.content_area.grid(row=0, column=0, sticky="nsew", padx=(15, 0), pady=15)  # Add padding for rounded effect
         
         # Top bar
         self.create_top_bar()
         
-        # Content container with glass effect
+        # Content container with modern card design and beautiful styling
         self.main_content = ctk.CTkFrame(
             self.content_area,
-            fg_color=self.colors['bg_glass'],
-            corner_radius=20,
+            corner_radius=20,  # Large rounded corners for modern look
+            fg_color=self.theme['bg_card'],
             border_width=1,
-            border_color=self.colors['border']
+            border_color=self.theme['border_light']
         )
-        self.main_content.pack(fill="both", expand=True, padx=10, pady=10)
+        self.main_content.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('xl'), pady=(0, self.theme_manager.get_spacing('xl')))
         
-        # Welcome placeholder
+        # Welcome placeholder with better styling
         welcome_label = ctk.CTkLabel(
             self.main_content,
             text="ברוכים הבאים למערכת ניהול הצעות מטבח",
-            font=ctk.CTkFont(family="Assistant", size=32, weight="bold"),
-            text_color=self.colors['text_primary']
+            font=self.theme_manager.create_ctk_font('title'),
+            text_color=self.theme['text_primary']
         )
-        welcome_label.pack(expand=True)
+        welcome_label.pack(expand=True, pady=self.theme_manager.get_spacing('xxxl'))
     
     def create_top_bar(self):
-        """Create modern top bar"""
+        """Create modern professional top bar with gradient design"""
         top_bar = ctk.CTkFrame(
             self.content_area,
-            height=70,
-            fg_color=self.colors['bg_primary'],
+            height=90,  # Increased height for better proportions
+            fg_color="transparent",  # Transparent to blend with content area
             corner_radius=0
         )
-        top_bar.pack(fill="x", padx=0, pady=0)
+        top_bar.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('xl'))
         top_bar.pack_propagate(False)
         
-        # Page title
+        # Page title with professional styling
         self.page_title = ctk.CTkLabel(
             top_bar,
             text="סקירה כללית",
-            font=ctk.CTkFont(family="Assistant", size=26, weight="bold"),
-            text_color=self.colors['text_primary'],
+            font=self.theme_manager.create_ctk_font('title'),
+            text_color=self.theme['text_primary'],
             anchor="e"
         )
-        self.page_title.pack(side="right", padx=30, pady=20)
+        self.page_title.pack(side="right", padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('xl'))
         
-        # Theme toggle
-        current_theme = self.settings_manager.get('theme_mode', 'light')
-        theme_icon = "🌙" if current_theme == "light" else "☀️"
-        theme_button = ctk.CTkButton(
-            top_bar,
-            text=theme_icon,
+        # Color theme toggle buttons with modern styling
+        button_frame = ctk.CTkFrame(
+            top_bar, 
+            fg_color=self.theme['bg_card'],  # Card background for elevation effect
+            corner_radius=16,  # Rounded container
+            border_width=1,
+            border_color=self.theme['border_light']
+        )
+        button_frame.pack(side="left", padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Blue theme button with modern design
+        blue_button = ctk.CTkButton(
+            button_frame,
+            text="🔵",
             width=45,
             height=45,
-            font=ctk.CTkFont(size=20),
-            fg_color=self.colors['accent_primary'],
-            hover_color=self.colors['accent_secondary'],
-            corner_radius=25,
-            command=self.toggle_theme
+            font=ctk.CTkFont(size=18),
+            fg_color=self.theme['primary'] if self.theme_manager.current_color_theme == 'blue' else "transparent",
+            hover_color=self.theme['primary_light'],
+            corner_radius=12,  # Rounded like navigation items
+            border_width=2 if self.theme_manager.current_color_theme == 'blue' else 0,
+            border_color=self.theme['primary_dark'] if self.theme_manager.current_color_theme == 'blue' else self.theme['border_light'],
+            command=lambda: self.switch_color_theme('blue')
         )
-        theme_button.pack(side="left", padx=25, pady=12)
+        blue_button.pack(side="left", padx=(self.theme_manager.get_spacing('md'), self.theme_manager.get_spacing('sm')), pady=self.theme_manager.get_spacing('md'))
         
-        # Separator
+        # Red theme button with modern design
+        red_button = ctk.CTkButton(
+            button_frame,
+            text="🔴",
+            width=45,
+            height=45,
+            font=ctk.CTkFont(size=18),
+            fg_color="#EF4444" if self.theme_manager.current_color_theme == 'red' else "transparent",
+            hover_color="#FCA5A5",
+            corner_radius=12,  # Rounded like navigation items
+            border_width=2 if self.theme_manager.current_color_theme == 'red' else 0,
+            border_color="#DC2626" if self.theme_manager.current_color_theme == 'red' else self.theme['border_light'],
+            command=lambda: self.switch_color_theme('red')
+        )
+        red_button.pack(side="left", padx=(0, self.theme_manager.get_spacing('md')), pady=self.theme_manager.get_spacing('md'))
+        
+        # Modern separator with subtle styling
         separator = ctk.CTkFrame(
             self.content_area,
-            height=1,
-            fg_color=self.colors['border']
+            height=2,  # Slightly thicker for better visibility
+            fg_color=self.theme['border_light'],
+            corner_radius=1
         )
-        separator.pack(fill="x", padx=30)
+        separator.pack(fill="x", padx=self.theme_manager.get_spacing('xxxl'), pady=(0, self.theme_manager.get_spacing('lg')))
     
     def create_modern_sidebar(self):
-        """Create right-side fixed sidebar"""
-        # Sidebar frame with glass effect
+        """Create right-side professional sidebar with gradient and rounded corners"""
+        # Professional sidebar with stronger gradient effect and rounded corners
         self.sidebar = ctk.CTkFrame(
             self.window,
             width=self.sidebar_width,
-            corner_radius=25,
-            fg_color=self.colors['bg_sidebar'],
-            border_width=1,
-            border_color=self.colors['border'],
+            corner_radius=20,  # Rounded corners like in the image
+            fg_color=self.theme['sidebar_bg_solid'],  # Keep original base color, stronger gradient is for visual effect
+            border_width=0
         )
-        self.sidebar.grid(row=0, column=1, sticky="nsew", padx=(10, 15), pady=(15, 15))
+        self.sidebar.grid(row=0, column=1, sticky="nsew", padx=(0, 15), pady=15)  # Add padding for rounded effect
         self.sidebar.grid_propagate(False)
         
         # Create sections
@@ -224,129 +214,129 @@ class DashboardWindow:
         self.create_user_section()
     
     def create_logo_section(self):
-        """Create logo section in sidebar"""
+        """Create professional logo section in sidebar"""
         logo_frame = ctk.CTkFrame(
             self.sidebar,
             fg_color="transparent"
         )
-        logo_frame.pack(pady=(30, 20), padx=15)
+        logo_frame.pack(pady=(32, 24), padx=self.theme_manager.get_spacing('lg'))
         
-        # Try to load actual logo, fallback to high-quality icon
-        logo_element = None  # Will hold either logo_label or logo_icon
+        # Load theme-appropriate .ico logo
         try:
             from PIL import Image
             import os
-            logo_path = os.path.join("resources", "logo.png")
+            
+            # Use the theme-appropriate icon file
+            icon_filename = self.theme_manager.get_current_theme()['icon_file']
+            logo_path = os.path.join("resources", icon_filename)
+            
             if os.path.exists(logo_path):
-                # Load image and check dimensions for better quality
                 pil_image = Image.open(logo_path)
-                # Use larger size for better clarity, maintaining aspect ratio
                 logo_image = ctk.CTkImage(
                     light_image=pil_image,
                     dark_image=pil_image,
-                    size=(80, 80)  # Increased from 45x45 for better quality
+                    size=(48, 48)  # Slightly smaller for .ico files
                 )
                 logo_element = ctk.CTkLabel(
                     logo_frame,
                     image=logo_image,
                     text=""
                 )
-                logo_element.pack(pady=15)
+                logo_element.pack(pady=(0, 12))
             else:
                 raise FileNotFoundError("Logo not found")
         except:
-            # Fallback to professional icon with better styling
+            # Professional fallback icon
             logo_element = ctk.CTkLabel(
                 logo_frame,
-                text="🏢",  # Changed from home to office building for more professional look
-                font=ctk.CTkFont(size=40),  # Increased size
-                text_color=self.colors['accent_primary']
+                text="🏢", 
+                font=self.theme_manager.create_ctk_font('card_title'),
+                text_color=self.theme['sidebar_text']
             )
-            logo_element.pack(pady=15)
+            logo_element.pack(pady=(0, 12))
         
-        # Company name with modern styling
+        # Company name with professional styling
         self.company_name = ctk.CTkLabel(
             logo_frame,
             text="Panel Kitchens",
-            font=ctk.CTkFont(family="Assistant", size=20, weight="bold"),
-            text_color=self.colors['accent_primary']  # Use accent color for branding
+            font=self.theme_manager.create_ctk_font('heading'),
+            text_color=self.theme['sidebar_text']
         )
-        self.company_name.pack(pady=(5, 10))  # Better spacing
+        self.company_name.pack()
     
     def create_navigation(self):
-        """Create navigation menu with permission-based visibility"""
+        """Create professional navigation menu"""
         nav_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        nav_frame.pack(fill="both", expand=True, padx=15, pady=20)
+        nav_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('xl'))
         
         # Get accessible pages for current user
         accessible_pages = self.permission_manager.get_accessible_pages(self.current_user)
         
-        # Navigation items with icons and permission checks
+        # Professional navigation items (clean text, no emojis)
         nav_items = [
-            ("overview", "📊 סקירה כללית", "#3B82F6"),
-            ("quotes", "📋 הצעות מחיר", "#10B981") if "quotes" in accessible_pages else None,
-            ("drafts", "📝 טיוטות", "#F59E0B") if "drafts" in accessible_pages else None,
-            ("customers", "👥 לקוחות", "#8B5CF6") if "customers" in accessible_pages else None,
-            ("catalog", "📚 קטלוג", "#06B6D4") if "catalog" in accessible_pages else None,
-            ("users", "👤 משתמשים", "#EF4444") if "users" in accessible_pages else None,
-            ("settings", "⚙️ הגדרות", "#6B7280") if "settings" in accessible_pages else None,
+            ("overview", "סקירה כללית"),
+            ("quotes", "הצעות מחיר") if "quotes" in accessible_pages else None,
+            ("drafts", "טיוטות") if "drafts" in accessible_pages else None,
+            ("customers", "לקוחות") if "customers" in accessible_pages else None,
+            ("catalog", "קטלוג") if "catalog" in accessible_pages else None,
+            ("users", "משתמשים") if "users" in accessible_pages else None,
+            ("settings", "הגדרות") if "settings" in accessible_pages else None,
         ]
         
         # Filter out None items (pages user can't access)
         nav_items = [item for item in nav_items if item is not None]
         
-        # Create navigation buttons
-        for page_id, text, color in nav_items:
+        # Create professional navigation buttons
+        sidebar_config = self.theme_manager.get_component_config('sidebar')
+        
+        for page_id, text in nav_items:
             nav_button = ctk.CTkButton(
                 nav_frame,
                 text=text,
-                font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
-                height=50,
+                font=self.theme_manager.create_ctk_font('nav_item'),
+                height=sidebar_config['item_height'],
                 fg_color="transparent",
-                text_color=color,
-                hover_color=self.colors['bg_sidebar_hover'],
-                corner_radius=12,
-                anchor="e",
+                text_color=self.theme['sidebar_text'],
+                hover_color=self.theme['sidebar_hover_gradient'],  # Beautiful gradient hover effect
+                corner_radius=12,  # Rounded corners like in the image
+                anchor="e",  # Right align for RTL
                 command=lambda p=page_id: self.navigate_to_page(p)
             )
-            nav_button.pack(fill="x", pady=3)
+            nav_button.pack(fill="x", pady=2)
             
             # Store button reference for highlighting
-            self.nav_buttons[text] = {
-                'button': nav_button,
-                'color': color
-            }
+            self.nav_buttons[text] = nav_button
         
         # Show message if no pages accessible
         if len(nav_items) <= 1:  # Only overview
             no_access_label = ctk.CTkLabel(
                 nav_frame,
                 text="אין לך הרשאות לגשת לדפים נוספים",
-                font=ctk.CTkFont(family="Assistant", size=12),
-                text_color="#6B7280",
+                font=self.theme_manager.create_ctk_font('helper'),
+                text_color=self.theme['sidebar_text'],
                 justify="center"
             )
-            no_access_label.pack(pady=20)
+            no_access_label.pack(pady=self.theme_manager.get_spacing('xl'))
     
     def create_user_section(self):
-        """Create user section"""
+        """Create professional user section at bottom of sidebar"""
         user_frame = ctk.CTkFrame(
             self.sidebar,
-            fg_color=self.colors['accent_primary'],
-            corner_radius=20
+            fg_color="transparent",  # Transparent background to blend with sidebar
+            corner_radius=12
         )
-        user_frame.pack(side="bottom", fill="x", padx=15, pady=20)
+        user_frame.pack(side="bottom", fill="x", padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('xl'))
         
-        # User icon
+        # User icon with light color for visibility on sidebar
         user_icon = ctk.CTkLabel(
             user_frame,
             text="👤",
-            font=ctk.CTkFont(size=28),
-            text_color="white"
+            font=self.theme_manager.create_ctk_font('heading'),
+            text_color=self.theme['sidebar_text']  # Light color for visibility
         )
-        user_icon.pack(pady=(15, 10))
+        user_icon.pack(pady=(self.theme_manager.get_spacing('lg'), self.theme_manager.get_spacing('md')))
         
-        # User details (always visible)
+        # User details
         full_name = f"{self.current_user.get('first_name', '')} {self.current_user.get('last_name', '')}".strip()
         if not full_name:
             full_name = self.current_user.get('username', 'משתמש')
@@ -354,10 +344,10 @@ class DashboardWindow:
         self.user_name = ctk.CTkLabel(
             user_frame,
             text=full_name,
-            font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
-            text_color="white"
+            font=self.theme_manager.create_ctk_font('card_title'),
+            text_color=self.theme['sidebar_text']  # Light color for visibility
         )
-        self.user_name.pack(pady=(0, 3))
+        self.user_name.pack(pady=(0, self.theme_manager.get_spacing('xs')))
         
         # Role
         role_text = {
@@ -370,38 +360,41 @@ class DashboardWindow:
         self.user_role = ctk.CTkLabel(
             user_frame,
             text=role_text,
-            font=ctk.CTkFont(family="Assistant", size=13),
-            text_color="#E0E7FF"
+            font=self.theme_manager.create_ctk_font('helper'),
+            text_color=self.theme['sidebar_text']  # Light color for visibility
         )
-        self.user_role.pack(pady=(0, 8))
+        self.user_role.pack(pady=(0, self.theme_manager.get_spacing('lg')))
         
-        # Logout button
+        # Action buttons
+        button_config = self.theme_manager.get_component_config('button')
+        
+        # Logout button - using primary theme color
         self.logout_btn = ctk.CTkButton(
             user_frame,
             text="יציאה",
-            font=ctk.CTkFont(family="Assistant", size=13, weight="bold"),
-            height=35,
-            fg_color="white",
-            hover_color="#DC2626",
-            text_color=self.colors['accent_primary'],
-            corner_radius=10,
+            font=self.theme_manager.create_ctk_font('helper'),
+            height=button_config['height'] - 8,  # Slightly smaller
+            fg_color=self.theme['primary_dark'],  # Use dark theme color
+            hover_color=self.theme['primary'],    # Use primary theme color
+            text_color="white",
+            corner_radius=button_config['corner_radius'],
             command=self.handle_logout
         )
-        self.logout_btn.pack(fill="x", padx=12, pady=(0, 12))
+        self.logout_btn.pack(fill="x", padx=self.theme_manager.get_spacing('md'), pady=(0, self.theme_manager.get_spacing('sm')))
         
-        # Switch user button
+        # Switch user button - using lighter theme color
         self.switch_user_btn = ctk.CTkButton(
             user_frame,
             text="החלף משתמש",
-            font=ctk.CTkFont(family="Assistant", size=13, weight="bold"),
-            height=35,
-            fg_color="#F59E0B",
-            hover_color="#D97706",
-            text_color="white",
-            corner_radius=10,
+            font=self.theme_manager.create_ctk_font('helper'),
+            height=button_config['height'] - 8,  # Slightly smaller
+            fg_color=self.theme['primary_light'],  # Use light theme color
+            hover_color=self.theme['primary'],     # Use primary theme color
+            text_color=self.theme['primary_dark'], # Dark text on light background
+            corner_radius=button_config['corner_radius'],
             command=self.handle_switch_user
         )
-        self.switch_user_btn.pack(fill="x", padx=12, pady=(0, 12))
+        self.switch_user_btn.pack(fill="x", padx=self.theme_manager.get_spacing('md'), pady=(0, self.theme_manager.get_spacing('md')))
     
     def clear_content_area(self):
         """Clear main content area"""
@@ -409,35 +402,39 @@ class DashboardWindow:
             widget.destroy()
     
     def highlight_nav_button(self, button_text: str):
-        """Highlight active navigation with modern effects"""
-        # Reset all buttons
-        for text, nav_data in self.nav_buttons.items():
-            nav_data['button'].configure(
+        """Highlight active navigation with modern professional effects"""
+        # Reset all buttons to default state
+        for text, nav_button in self.nav_buttons.items():
+            nav_button.configure(
                 fg_color="transparent",
-                text_color=nav_data['color']
+                text_color=self.theme['sidebar_text']
             )
         
-        # Highlight active
+        # Highlight active button with white background
         if button_text in self.nav_buttons:
-            nav_data = self.nav_buttons[button_text]
-            nav_data['button'].configure(
-                fg_color=nav_data['color'],
-                text_color="white"
+            self.nav_buttons[button_text].configure(
+                fg_color=self.theme['sidebar_active'],
+                text_color=self.theme['sidebar_text_active']
             )
         
-        # Update page title
-        self.page_title.configure(text=button_text)
+        # Update page title if it exists
+        if hasattr(self, 'page_title'):
+            self.page_title.configure(text=button_text)
+    
+    def switch_color_theme(self, new_theme):
+        """Switch between blue and red color themes"""
+        if self.theme_manager.switch_color_theme(new_theme):
+            messagebox.showinfo(
+                "ערכת צבעים", 
+                f"ערכת הצבעים שונתה ל{new_theme}!\nאנא הפעל מחדש את התוכנה כדי לראות את השינויים."
+            )
     
     def toggle_theme(self):
-        """Toggle theme with restart message"""
-        current = self.settings_manager.get('theme_mode', 'light')
-        new_theme = 'dark' if current == 'light' else 'light'
-        
-        self.settings_manager.set('theme_mode', new_theme)
-        
+        """Toggle between light and dark mode"""
+        new_mode = self.theme_manager.toggle_mode()
         messagebox.showinfo(
-            "ערכת נושא", 
-            "ערכת הנושא שונתה!\nאנא הפעל מחדש את התוכנה כדי לראות את השינויים."
+            "מצב תצוגה", 
+            f"מצב התצוגה שונה ל{new_mode}!\nאנא הפעל מחדש את התוכנה כדי לראות את השינויים."
         )
     
     def navigate_to_page(self, page_id: str):

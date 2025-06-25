@@ -66,6 +66,7 @@ class SettingsManager:
             
             # UI settings
             'theme_mode': 'light',  # light, dark
+            'color_theme': 'blue',  # blue, red
             'window_width': 1400,
             'window_height': 900,
             'window_maximized': False,

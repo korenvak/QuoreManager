@@ -42,9 +42,9 @@ MODERN_COLORS = {
         # Borders and effects
         'border': '#E5E7EB',
         'border_light': '#F3F4F6',
-        'shadow_light': 'rgba(0, 0, 0, 0.05)',
-        'shadow_medium': 'rgba(0, 0, 0, 0.1)',
-        'shadow_strong': 'rgba(0, 0, 0, 0.15)',
+        'shadow_light': '#F9FAFB',
+        'shadow_medium': '#F3F4F6',
+        'shadow_strong': '#E5E7EB',
         
         # Glass effect (simulated with light colors)
         'glass_bg': '#FEFEFE',
@@ -85,9 +85,9 @@ MODERN_COLORS = {
         # Dark borders and effects
         'border': '#475569',
         'border_light': '#334155',
-        'shadow_light': 'rgba(0, 0, 0, 0.2)',
-        'shadow_medium': 'rgba(0, 0, 0, 0.3)',
-        'shadow_strong': 'rgba(0, 0, 0, 0.4)',
+        'shadow_light': '#374151',
+        'shadow_medium': '#1F2937',
+        'shadow_strong': '#111827',
         
         # Dark glass effect (simulated)
         'glass_bg': '#1E293B',

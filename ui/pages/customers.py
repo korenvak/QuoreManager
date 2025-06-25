@@ -1,5 +1,5 @@
 """
-Customers Management Page for Kitchen Quote Management System
+Customers Management Page for Kitchen Quote Management System - Modern Professional Design
 Complete implementation with CRUD operations and search
 """
 
@@ -7,9 +7,11 @@ import customtkinter as ctk
 from tkinter import messagebox
 import threading
 from typing import Optional, Dict, Any, Callable
+from styling.theme_system import ModernThemeManager, THEMES
+from config.settings import SettingsManager
 
 class CustomersPage:
-    """Complete customers management page"""
+    """Modern professional customers management page"""
     
     def __init__(self, parent, db_manager, current_user):
         self.parent = parent
@@ -21,19 +23,86 @@ class CustomersPage:
         self.customers_container: Optional[ctk.CTkFrame] = None
         self.stats_label: Optional[ctk.CTkLabel] = None
         
+        # Initialize theme system
+        self.settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(self.settings_manager)
+        self.theme = self.theme_manager.get_current_theme()
+        
     def create_content(self):
-        """Create customers page content"""
-        main_frame = ctk.CTkFrame(self.parent, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        """Create modern professional customers page content"""
+        # Main container with gradient background
+        main_frame = ctk.CTkScrollableFrame(
+            self.parent,
+            fg_color=self.theme['bg_secondary'],
+            corner_radius=0,
+            scrollbar_button_color=self.theme['primary_light'],
+            scrollbar_button_hover_color=self.theme['primary']
+        )
+        main_frame.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Header with search and actions
-        self.create_header(main_frame)
+        # Inner container with compact spacing
+        inner_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        inner_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
         
-        # Content area with scrollable customers list
-        self.create_content_area(main_frame)
+        # Professional page header
+        self.create_modern_header(inner_frame)
+        
+        # Modern content area
+        self.create_content_area(inner_frame)
         
         # Load customers data
         self.load_customers()
+    
+    def create_modern_header(self, parent):
+        """Create modern professional page header"""
+        header_card = ctk.CTkFrame(
+            parent, 
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_width=1,
+            border_color=self.theme['border_light']
+        )
+        header_card.pack(fill="x", pady=(0, self.theme_manager.get_spacing('xl')))
+        
+        header_frame = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Title section
+        title_section = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_section.pack(fill="x", pady=(0, self.theme_manager.get_spacing('md')))
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            title_section,
+            text="ניהול לקוחות",
+            font=self.theme_manager.create_ctk_font('title'),
+            text_color=self.theme['text_primary'],
+            anchor="e"
+        )
+        title_label.pack(anchor="e")
+        
+        # Subtitle
+        subtitle_label = ctk.CTkLabel(
+            title_section,
+            text="נהל פרטי לקוחות והצעות מחיר",
+            font=self.theme_manager.create_ctk_font('body'),
+            text_color=self.theme['text_muted'],
+            anchor="e"
+        )
+        subtitle_label.pack(anchor="e", pady=(self.theme_manager.get_spacing('xs'), 0))
+        
+        # Action buttons
+        actions_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        actions_frame.pack(anchor="e")
+        
+        # Add customer button - using theme colors
+        add_button = self.theme_manager.create_modern_button(
+            actions_frame,
+            text="➕  הוסף לקוח חדש",
+            style="primary", 
+            command=self.show_add_customer_dialog
+        )
+        add_button.pack(side="right")
     
     def create_header(self, parent):
         """Create header with title, search, and actions"""
@@ -292,59 +361,47 @@ class CustomersPage:
         )
         address_label.pack(anchor="e", pady=(2, 0))
         
-        # Right side - actions (horizontal layout)
+        # Right side - actions (single row layout with theme colors)
         actions_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
         actions_frame.pack(side="left", padx=(0, 20))
         
-        # Button configuration
-        button_config = {
-            'width': 80,
-            'height': 32,
-            'font': ctk.CTkFont(family="Assistant", size=12, weight="bold"),
-            'corner_radius': 8
-        }
+        # All buttons in single row with professional styling
+        buttons_container = ctk.CTkFrame(actions_frame, fg_color="transparent")
+        buttons_container.pack(fill="x")
         
-        # Row 1 - Primary actions
-        row1_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
-        row1_frame.pack(fill="x", pady=(0, 5))
-        
-        # Edit button
-        edit_button = ctk.CTkButton(
-            row1_frame,
-            text="עריכה",
-            fg_color="#3B82F6",
-            hover_color="#1E40AF",
-            command=lambda c=customer: self.show_edit_customer_dialog(c),
-            **button_config
-        )
-        edit_button.pack(side="right", padx=(0, 5))
-        
-        # View quotes button
-        quotes_button = ctk.CTkButton(
-            row1_frame,
-            text="הצעות",
-            fg_color="#3B82F6",
-            hover_color="#1E40AF",
-            command=lambda c=customer: self.view_customer_quotes(c),
-            **button_config
-        )
-        quotes_button.pack(side="right")
-        
-        # Row 2 - Secondary actions
+        # Delete button (admin only) - rightmost for caution
         if self.has_permission('delete_customer'):
-            row2_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
-            row2_frame.pack(fill="x")
-            
-            # Delete button (admin only)
-            delete_button = ctk.CTkButton(
-                row2_frame,
+            delete_button = self.theme_manager.create_modern_button(
+                buttons_container,
                 text="מחיקה",
-                fg_color="#EF4444",
-                hover_color="#DC2626",
-                command=lambda c=customer: self.confirm_delete_customer(c),
-                **button_config
+                style="danger",
+                size="small",
+                width=80,
+                command=lambda c=customer: self.confirm_delete_customer(c)
             )
-            delete_button.pack(side="right")
+            delete_button.pack(side="right", padx=(5, 0))
+        
+        # Edit button - theme colors
+        edit_button = self.theme_manager.create_modern_button(
+            buttons_container,
+            text="עריכה",
+            style="primary",
+            size="small",
+            width=80,
+            command=lambda c=customer: self.show_edit_customer_dialog(c)
+        )
+        edit_button.pack(side="right", padx=(5, 0))
+        
+        # View quotes button - theme colors
+        quotes_button = self.theme_manager.create_modern_button(
+            buttons_container,
+            text="הצעות",
+            style="secondary",
+            size="small", 
+            width=80,
+            command=lambda c=customer: self.view_customer_quotes(c)
+        )
+        quotes_button.pack(side="right", padx=(5, 0))
     
     def on_search_changed(self, *args):
         """Handle search text change"""
@@ -480,7 +537,7 @@ class CustomersPage:
 
 
 class CustomerDialog:
-    """Customer creation/edit dialog with real-time validation"""
+    """Customer creation/edit dialog with modern design and real-time validation"""
     
     def __init__(self, parent, title: str, customer_data: Optional[Dict] = None, 
                  db_manager=None, on_success: Callable = None):
@@ -490,6 +547,12 @@ class CustomerDialog:
         self.db_manager = db_manager
         self.on_success = on_success
         self.dialog: Optional[ctk.CTkToplevel] = None
+        
+        # Import theme manager  
+        from styling.theme_system import ModernThemeManager
+        from config.settings import SettingsManager
+        settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(settings_manager)
         
         # Form variables
         self.name_var = ctk.StringVar()
@@ -517,49 +580,37 @@ class CustomerDialog:
         self.create_dialog()
     
     def create_dialog(self):
-        """Create customer dialog"""
+        """Create modern customer dialog with beautiful design"""
+        current_theme = self.theme_manager.get_current_theme()
+        
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title(self.title)
         
-        # Make dialog responsive to screen size
-        screen_width = self.dialog.winfo_screenwidth()
-        screen_height = self.dialog.winfo_screenheight()
-        
-        # Calculate appropriate dialog size (40% of screen width, 85% of height)
-        dialog_width = min(600, int(screen_width * 0.4))
-        dialog_height = min(700, int(screen_height * 0.85))
-        
-        # Ensure minimum sizes
-        dialog_width = max(500, dialog_width)
-        dialog_height = max(600, dialog_height)
+        # Modern sizing and positioning
+        dialog_width = 580
+        dialog_height = 720
         
         self.dialog.geometry(f"{dialog_width}x{dialog_height}")
-        self.dialog.resizable(True, True)  # Allow resizing
-        
-        # Set minimum window size
-        self.dialog.minsize(500, 600)
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(500, 650)
         
         # Center dialog
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Main container
-        main_frame = ctk.CTkScrollableFrame(self.dialog)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # Title
-        title_label = ctk.CTkLabel(
-            main_frame,
-            text=self.title,
-            font=ctk.CTkFont(family="Assistant", size=24, weight="bold")
+        # Modern main container with beautiful styling
+        main_container = ctk.CTkFrame(
+            self.dialog,
+            corner_radius=0,
+            fg_color=("#F8FAFC", "#1E293B")
         )
-        title_label.pack(pady=(0, 30))
+        main_container.pack(fill="both", expand=True)
         
-        # Form fields
-        self.create_form_fields(main_frame)
+        # Beautiful header with gradient
+        self.create_modern_header(main_container)
         
-        # Buttons
-        self.create_buttons(main_frame)
+        # Main content card
+        self.create_content_card(main_container)
         
         # Load existing data if editing
         if self.customer_data:
@@ -572,60 +623,156 @@ class CustomerDialog:
         if self.name_entry:
             self.name_entry.focus_set()
     
+    def create_modern_header(self, parent):
+        """Create beautiful header with gradient background"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        header_frame = ctk.CTkFrame(
+            parent,
+            corner_radius=0,
+            height=120,
+            fg_color=current_theme['primary']
+        )
+        header_frame.pack(fill="x")
+        header_frame.pack_propagate(False)
+        
+        # Header content
+        header_content = ctk.CTkFrame(header_frame, fg_color="transparent")
+        header_content.pack(expand=True, fill="both")
+        
+        # Icon
+        icon_label = ctk.CTkLabel(
+            header_content,
+            text="👤" if not self.customer_data else "✏️",
+            font=ctk.CTkFont(size=40),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        icon_label.pack(pady=(20, 10))
+        
+        # Title with modern typography
+        title_label = ctk.CTkLabel(
+            header_content,
+            text=self.title,
+            font=ctk.CTkFont(family="Assistant", size=24, weight="bold"),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        title_label.pack()
+        
+        # Subtitle
+        subtitle_text = "הוספת לקוח חדש למערכת" if not self.customer_data else "עריכת פרטי הלקוח"
+        subtitle_label = ctk.CTkLabel(
+            header_content,
+            text=subtitle_text,
+            font=ctk.CTkFont(family="Assistant", size=14),
+            text_color=("#FFFFFF", "#F1F5F9"),
+            fg_color="transparent"
+        )
+        subtitle_label.pack(pady=(5, 0))
+    
+    def create_content_card(self, parent):
+        """Create main content card with form fields"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        # Card container
+        card_frame = ctk.CTkFrame(
+            parent,
+            corner_radius=24,
+            fg_color=("#FFFFFF", "#334155"),
+            border_width=1,
+            border_color=("#E2E8F0", "#475569")
+        )
+        card_frame.pack(fill="both", expand=True, padx=30, pady=(30, 30))
+        
+        # Scrollable content
+        main_frame = ctk.CTkScrollableFrame(card_frame, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Form fields
+        self.create_form_fields(main_frame)
+        
+        # Action buttons
+        self.create_modern_buttons(main_frame)
+    
     def create_form_fields(self, parent):
-        """Create form input fields with validation"""
-        fields_frame = ctk.CTkFrame(parent)
+        """Create modern form input fields with validation"""
+        current_theme = self.theme_manager.get_current_theme()
+        
+        fields_frame = ctk.CTkFrame(
+            parent,
+            corner_radius=16,
+            fg_color=current_theme['card_bg'],
+            border_width=1,
+            border_color=current_theme['border']
+        )
         fields_frame.pack(fill="x", pady=(0, 30))
         
+        # Form title
+        form_title = ctk.CTkLabel(
+            fields_frame,
+            text="פרטי הלקוח",
+            font=ctk.CTkFont(family="Assistant", size=18, weight="bold"),
+            text_color=current_theme['text_primary'],
+            anchor="e"
+        )
+        form_title.pack(anchor="e", padx=20, pady=(20, 10))
+        
+        # Fields container
+        fields_container = ctk.CTkFrame(fields_frame, fg_color="transparent")
+        fields_container.pack(fill="x", padx=20, pady=(0, 20))
+        
         # Name field
-        self.create_field(
-            fields_frame, "שם הלקוח *", self.name_var, 
+        self.create_modern_field(
+            fields_container, "שם הלקוח *", self.name_var, 
             placeholder="שם מלא של הלקוח", field_key="name"
         )
         
         # Phone field
-        self.create_field(
-            fields_frame, "טלפון *", self.phone_var,
+        self.create_modern_field(
+            fields_container, "טלפון *", self.phone_var,
             placeholder="050-1234567", field_key="phone"
         )
         
         # Email field
-        self.create_field(
-            fields_frame, "דואר אלקטרוני *", self.email_var,
+        self.create_modern_field(
+            fields_container, "דואר אלקטרוני *", self.email_var,
             placeholder="customer@email.com", field_key="email"
         )
         
         # Address field
-        self.create_field(
-            fields_frame, "כתובת *", self.address_var,
+        self.create_modern_field(
+            fields_container, "כתובת *", self.address_var,
             placeholder="רחוב, עיר, מיקוד", field_key="address", 
             multiline=True
         )
         
         # Notes field (optional)
-        self.create_field(
-            fields_frame, "הערות", self.notes_var,
+        self.create_modern_field(
+            fields_container, "הערות", self.notes_var,
             placeholder="הערות נוספות על הלקוח (אופציונלי)",
             field_key="notes", multiline=True, required=False
         )
     
-    def create_field(self, parent, label: str, variable: ctk.StringVar, 
+    def create_modern_field(self, parent, label: str, variable: ctk.StringVar, 
                     placeholder: str, field_key: str, multiline: bool = False, 
                     required: bool = True):
-        """Create individual form field with validation"""
+        """Create individual modern form field with validation"""
+        current_theme = self.theme_manager.get_current_theme()
         
         # Field container
         field_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        field_frame.pack(fill="x", pady=10)
+        field_frame.pack(fill="x", pady=12)
         
-        # Label
+        # Label with modern styling
         label_frame = ctk.CTkFrame(field_frame, fg_color="transparent")
-        label_frame.pack(fill="x")
+        label_frame.pack(fill="x", pady=(0, 8))
         
         field_label = ctk.CTkLabel(
             label_frame,
             text=label,
             font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+            text_color=current_theme['text_primary'],
             anchor="e"
         )
         field_label.pack(anchor="e")
@@ -635,26 +782,27 @@ class CustomerDialog:
             required_label = ctk.CTkLabel(
                 label_frame,
                 text="שדה חובה",
-                font=ctk.CTkFont(family="Assistant", size=10),
-                text_color="gray",
+                font=ctk.CTkFont(family="Assistant", size=11),
+                text_color=current_theme['text_tertiary'],
                 anchor="e"
             )
             required_label.pack(anchor="e")
         
-        # Input field
+        # Input field with modern styling
         if multiline:
-            if field_key == "address":
-                height = 80
-            else:
-                height = 100
+            height = 90 if field_key == "address" else 110
             
             entry = ctk.CTkTextbox(
                 field_frame,
                 height=height,
                 font=ctk.CTkFont(family="Assistant", size=14),
-                corner_radius=8
+                corner_radius=12,
+                border_width=2,
+                border_color=current_theme['border'],
+                fg_color=current_theme['input_bg'],
+                text_color=current_theme['text_primary']
             )
-            entry.pack(fill="x", pady=(5, 0))
+            entry.pack(fill="x")
             
             # Bind text change event for textbox
             def on_text_change(event=None):
@@ -670,10 +818,14 @@ class CustomerDialog:
                 textvariable=variable,
                 placeholder_text=placeholder,
                 font=ctk.CTkFont(family="Assistant", size=14),
-                height=40,
-                corner_radius=8
+                height=48,
+                corner_radius=12,
+                border_width=2,
+                border_color=current_theme['border'],
+                fg_color=current_theme['input_bg'],
+                text_color=current_theme['text_primary']
             )
-            entry.pack(fill="x", pady=(5, 0))
+            entry.pack(fill="x")
         
         # Store entry reference
         setattr(self, f"{field_key}_entry", entry)
@@ -683,42 +835,39 @@ class CustomerDialog:
             field_frame,
             text="",
             font=ctk.CTkFont(family="Assistant", size=12),
-            text_color="#EF4444",
+            text_color=current_theme['error'],
             anchor="e"
         )
-        validation_label.pack(anchor="e", pady=(2, 0))
+        validation_label.pack(anchor="e", pady=(4, 0))
         
         # Store validation label reference
         self.validation_labels[field_key] = validation_label
     
-    def create_buttons(self, parent):
-        """Create action buttons"""
+    def create_modern_buttons(self, parent):
+        """Create modern action buttons with gradients and shadows"""
+        # Buttons container
         buttons_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        buttons_frame.pack(fill="x", pady=20)
+        buttons_frame.pack(fill="x", pady=24)
         
         # Cancel button
-        cancel_button = ctk.CTkButton(
+        cancel_button = self.theme_manager.create_modern_button(
             buttons_frame,
             text="ביטול",
-            font=ctk.CTkFont(family="Assistant", size=16),
-            height=45,
-            width=120,
-            fg_color="gray",
-            hover_color="#6B7280",
+            style="outline",
+            size="large",
+            width=140,
             command=self.cancel_dialog
         )
         cancel_button.pack(side="left")
         
         # Save button
         save_text = "עדכן לקוח" if self.customer_data else "הוסף לקוח"
-        self.save_button = ctk.CTkButton(
+        self.save_button = self.theme_manager.create_modern_button(
             buttons_frame,
             text=save_text,
-            font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
-            height=45,
-            width=150,
-            fg_color="#10B981",
-            hover_color="#059669",
+            style="primary",
+            size="large",
+            width=160,
             command=self.save_customer
         )
         self.save_button.pack(side="right")
@@ -859,22 +1008,23 @@ class CustomerDialog:
     def update_validation_ui(self, field_key: str):
         """Update validation UI for specific field"""
         try:
+            current_theme = self.theme_manager.get_current_theme()
             state = self.validation_state[field_key]
             label = self.validation_labels.get(field_key)
             
             if label:
                 if state['valid']:
-                    label.configure(text="", text_color="#10B981")
+                    label.configure(text="", text_color=current_theme['success'])
                 else:
-                    label.configure(text=state['message'], text_color="#EF4444")
+                    label.configure(text=state['message'], text_color=current_theme['error'])
             
             # Update entry border color
             entry = getattr(self, f"{field_key}_entry", None)
             if entry:
                 if state['valid']:
-                    entry.configure(border_color="gray")
+                    entry.configure(border_color=current_theme['border'])
                 else:
-                    entry.configure(border_color="#EF4444")
+                    entry.configure(border_color=current_theme['error'])
             
             # Update save button state
             self.update_save_button_state()
@@ -904,16 +1054,9 @@ class CustomerDialog:
             
             if self.save_button:
                 if can_save:
-                    self.save_button.configure(
-                        state="normal",
-                        fg_color="#10B981",
-                        hover_color="#059669"
-                    )
+                    self.save_button.configure(state="normal")
                 else:
-                    self.save_button.configure(
-                        state="disabled",
-                        fg_color="gray"
-                    )
+                    self.save_button.configure(state="disabled")
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Error updating save button: {e}")
@@ -968,8 +1111,8 @@ class CustomerDialog:
                     return
             else:
                 # Create new customer
-                customer = self.db_manager.create_customer(**customer_data)
-                if customer:
+                customer_id = self.db_manager.add_customer(**customer_data)
+                if customer_id:
                     messagebox.showinfo("הצלחה", "הלקוח נוסף בהצלחה למערכת")
                 else:
                     messagebox.showerror("שגיאה", "שגיאה ביצירת לקוח חדש")
@@ -980,22 +1123,22 @@ class CustomerDialog:
                 self.on_success()
             
             # Close dialog
-            self.dialog.destroy()
+            if self.dialog:
+                self.dialog.destroy()
             
         except Exception as e:
             messagebox.showerror("שגיאה", f"שגיאה בשמירת הלקוח: {e}")
     
     def is_form_valid(self) -> bool:
         """Check if entire form is valid"""
-        return all(
-            state['valid'] for state in self.validation_state.values()
-        )
+        return all(state['valid'] for state in self.validation_state.values())
     
     def cancel_dialog(self):
         """Cancel and close dialog"""
-        self.dialog.destroy()
+        if self.dialog:
+            self.dialog.destroy()
     
     def show(self):
         """Show the dialog"""
         if self.dialog:
-            self.dialog.mainloop() 
+            self.dialog.deiconify() 
