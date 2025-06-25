@@ -403,41 +403,75 @@ class UserDialog:
         self.create_dialog()
     
     def create_dialog(self):
-        """Create modern user dialog with beautiful design"""
+        """Create modern user dialog with professional responsive design"""
         current_theme = self.theme_manager.get_current_theme()
         
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title(self.title)
         
-        # Modern sizing and positioning
-        dialog_width = 520
-        dialog_height = 700
+        # Advanced responsive sizing - works on all desktop sizes
+        screen_width = self.dialog.winfo_screenwidth()
+        screen_height = self.dialog.winfo_screenheight()
+        
+        # Professional responsive calculation for user dialog
+        if screen_width >= 1920:  # 4K/Large monitors
+            dialog_width = min(700, int(screen_width * 0.32))
+            dialog_height = min(850, int(screen_height * 0.8))
+        elif screen_width >= 1440:  # Standard large monitors
+            dialog_width = min(650, int(screen_width * 0.38))
+            dialog_height = min(800, int(screen_height * 0.8))
+        elif screen_width >= 1280:  # Standard monitors
+            dialog_width = min(620, int(screen_width * 0.42))
+            dialog_height = min(760, int(screen_height * 0.85))
+        else:  # Small monitors/laptops
+            dialog_width = min(580, int(screen_width * 0.9))
+            dialog_height = min(720, int(screen_height * 0.9))
+        
+        # Ensure minimum usability sizes
+        dialog_width = max(520, dialog_width)
+        dialog_height = max(650, dialog_height)
         
         self.dialog.geometry(f"{dialog_width}x{dialog_height}")
         self.dialog.resizable(True, True)
-        self.dialog.minsize(480, 650)
+        self.dialog.minsize(520, 650)  # Professional minimum size
         
-        # Center dialog
+        # Perfect centering on any monitor
+        x = (screen_width - dialog_width) // 2
+        y = (screen_height - dialog_height) // 2
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Professional window properties
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
+        self.dialog.attributes('-topmost', True)  # Ensure visibility
+        self.dialog.focus_force()
+        
+        # Professional window icon
+        try:
+            icon_path = self.theme_manager.get_icon_path()
+            self.dialog.iconbitmap(icon_path)
+        except:
+            pass  # Fallback gracefully if icon not found
         
         # Modern main container with beautiful styling
         main_container = ctk.CTkFrame(
             self.dialog,
             corner_radius=0,
-            fg_color=("#F8FAFC", "#1E293B")
+            fg_color=current_theme['bg_secondary']
         )
         main_container.pack(fill="both", expand=True)
         
-        # Beautiful header with gradient
+        # Create modern header and content
         self.create_modern_header(main_container)
-        
-        # Main content card
-        self.create_content_card(main_container)
+        self.create_content_section(main_container)
         
         # Load existing data if editing
         if self.user_data:
             self.load_user_data()
+        
+        # Focus first field
+        if hasattr(self, 'username_entry'):
+            self.username_entry.focus_set()
     
     def create_modern_header(self, parent):
         """Create beautiful header with gradient background"""
@@ -488,7 +522,7 @@ class UserDialog:
         )
         subtitle_label.pack(pady=(5, 0))
     
-    def create_content_card(self, parent):
+    def create_content_section(self, parent):
         """Create main content card with form fields"""
         current_theme = self.theme_manager.get_current_theme()
         

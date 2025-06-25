@@ -580,29 +580,61 @@ class CustomerDialog:
         self.create_dialog()
     
     def create_dialog(self):
-        """Create modern customer dialog with beautiful design"""
+        """Create modern customer dialog with beautiful design and responsive sizing"""
         current_theme = self.theme_manager.get_current_theme()
         
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title(self.title)
         
-        # Modern sizing and positioning
-        dialog_width = 580
-        dialog_height = 720
+        # Advanced responsive sizing - works on all desktop sizes
+        screen_width = self.dialog.winfo_screenwidth()
+        screen_height = self.dialog.winfo_screenheight()
+        
+        # Professional responsive calculation for customer dialog
+        if screen_width >= 1920:  # 4K/Large monitors
+            dialog_width = min(650, int(screen_width * 0.3))
+            dialog_height = min(800, int(screen_height * 0.8))
+        elif screen_width >= 1440:  # Standard large monitors
+            dialog_width = min(600, int(screen_width * 0.35))
+            dialog_height = min(750, int(screen_height * 0.8))
+        elif screen_width >= 1280:  # Standard monitors
+            dialog_width = min(580, int(screen_width * 0.4))
+            dialog_height = min(720, int(screen_height * 0.85))
+        else:  # Small monitors/laptops
+            dialog_width = min(520, int(screen_width * 0.9))
+            dialog_height = min(680, int(screen_height * 0.9))
+        
+        # Ensure minimum usability sizes
+        dialog_width = max(480, dialog_width)
+        dialog_height = max(600, dialog_height)
         
         self.dialog.geometry(f"{dialog_width}x{dialog_height}")
         self.dialog.resizable(True, True)
-        self.dialog.minsize(500, 650)
+        self.dialog.minsize(480, 600)  # Professional minimum size
         
-        # Center dialog
+        # Perfect centering on any monitor
+        x = (screen_width - dialog_width) // 2
+        y = (screen_height - dialog_height) // 2
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        # Professional window properties
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
+        self.dialog.attributes('-topmost', True)  # Ensure visibility
+        self.dialog.focus_force()
+        
+        # Professional window icon
+        try:
+            icon_path = self.theme_manager.get_icon_path()
+            self.dialog.iconbitmap(icon_path)
+        except:
+            pass  # Fallback gracefully if icon not found
         
         # Modern main container with beautiful styling
         main_container = ctk.CTkFrame(
             self.dialog,
             corner_radius=0,
-            fg_color=("#F8FAFC", "#1E293B")
+            fg_color=current_theme['bg_secondary']
         )
         main_container.pack(fill="both", expand=True)
         
