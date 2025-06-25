@@ -1,7 +1,6 @@
 """
 Excel/XLSX Catalog Handler for Kitchen Quote Management System
 Handles reading catalog data from XLSX files with category support
-Version 2.0 - Supports new format with units, approval, and comments
 """
 
 import pandas as pd
@@ -17,83 +16,27 @@ import tempfile
 import json
 import pickle
 
-# Column mappings for different formats
-NEW_FORMAT_MAPPING = {
-    'NAME': 'שם מוצר',
-    'CATEGORY': 'קטגוריה', 
-    'UNIT': 'יחידה',
-    'COST': 'מחיר',
-    'MANAGER APPROVED': 'דורש אישור',
-    'COMMENT': 'תיאור'
-}
-
-OLD_FORMAT_MAPPING = {
-    'הפריט': 'שם מוצר',
-    'יחידת מידה': 'יחידה', 
-    'מחיר יחידה': 'מחיר',
-    'דורש אישור': 'דורש אישור',
-    'הערות': 'תיאור'
-}
-
 class CatalogHandler:
-    """Handles XLSX catalog file operations with support for new format"""
-    
-    _instance = None
-    _initialized = False
-    
-    def __new__(cls):
-        """Singleton pattern implementation"""
-        if cls._instance is None:
-            cls._instance = super(CatalogHandler, cls).__new__(cls)
-        return cls._instance
+    """Handles XLSX catalog file operations"""
     
     def __init__(self):
-        """Initialize catalog handler (singleton)"""
-        if self._initialized:
-            return
-            
         self.logger = logging.getLogger(__name__)
         self.catalog_data = []
         self.categories = []
         self.images = {}  # Store extracted images
         self.catalog_file_path = None
-        self.format_detected = None  # 'new', 'old', or 'mixed'
-        
-        # Move cache to AppData for EXE persistence
-        self.cache_dir = self._get_cache_directory()
         self.load_cached_catalog()
-        
-        self._initialized = True
-    
-    def _get_cache_directory(self) -> Path:
-        """Get cache directory in AppData for EXE persistence"""
-        try:
-            import os
-            appdata = os.environ.get('APPDATA')
-            if appdata:
-                cache_dir = Path(appdata) / "KitchenQuotes" / "cache"
-            else:
-                cache_dir = Path("config") / "cache"
-            
-            cache_dir.mkdir(parents=True, exist_ok=True)
-            return cache_dir
-        except Exception:
-            # Fallback to local directory
-            cache_dir = Path("config")
-            cache_dir.mkdir(exist_ok=True)
-            return cache_dir
     
     def load_cached_catalog(self):
         """Load cached catalog data if available"""
         try:
-            cache_file = self.cache_dir / "catalog_cache.pkl"
+            cache_file = Path("config/catalog_cache.pkl")
             if cache_file.exists():
                 with open(cache_file, 'rb') as f:
                     cached_data = pickle.load(f)
                     self.catalog_data = cached_data.get('items', [])
                     self.categories = cached_data.get('categories', [])
                     self.catalog_file_path = cached_data.get('file_path')
-                    self.format_detected = cached_data.get('format_detected')
                     self.logger.info(f"Loaded {len(self.catalog_data)} items from cache")
         except Exception as e:
             self.logger.warning(f"Failed to load cached catalog: {e}")
@@ -101,13 +44,13 @@ class CatalogHandler:
     def save_cached_catalog(self):
         """Save catalog data to cache"""
         try:
-            cache_file = self.cache_dir / "catalog_cache.pkl"
+            cache_file = Path("config/catalog_cache.pkl")
+            cache_file.parent.mkdir(exist_ok=True)
             
             cached_data = {
                 'items': self.catalog_data,
                 'categories': self.categories,
-                'file_path': self.catalog_file_path,
-                'format_detected': self.format_detected
+                'file_path': self.catalog_file_path
             }
             
             with open(cache_file, 'wb') as f:
@@ -117,51 +60,8 @@ class CatalogHandler:
         except Exception as e:
             self.logger.error(f"Failed to save catalog cache: {e}")
     
-    def detect_sheet_format(self, df: pd.DataFrame) -> Tuple[str, int, Dict[str, int]]:
-        """Detect the format of a sheet and return format type, header row, and column mapping"""
-        
-        # Check first 10 rows for headers
-        for row_idx in range(min(10, len(df))):
-            row_values = [str(cell_val).upper().strip() for cell_val in df.iloc[row_idx] if pd.notna(cell_val)]
-            
-            # Check for new English format
-            new_format_cols = list(NEW_FORMAT_MAPPING.keys())
-            found_new = [col for col in new_format_cols if col in row_values]
-            
-            if len(found_new) >= 4:  # Need at least 4 required columns
-                self.logger.info(f"Detected NEW format in row {row_idx}: {found_new}")
-                
-                # Create column mapping
-                col_mapping = {}
-                for i, cell_val in enumerate(df.iloc[row_idx]):
-                    if pd.notna(cell_val) and str(cell_val).upper().strip() in NEW_FORMAT_MAPPING:
-                        col_mapping[str(cell_val).upper().strip()] = i
-                
-                return 'new', row_idx, col_mapping
-            
-            # Check for old Hebrew format
-            old_format_cols = list(OLD_FORMAT_MAPPING.keys())
-            found_old = [col for col in old_format_cols if any(old_col in str(row_val) for row_val in row_values for old_col in old_format_cols)]
-            
-            if len(found_old) >= 2:  # Need at least 2 required columns
-                self.logger.info(f"Detected OLD format in row {row_idx}: {found_old}")
-                
-                # Create column mapping for old format
-                col_mapping = {}
-                for i, cell_val in enumerate(df.iloc[row_idx]):
-                    if pd.notna(cell_val):
-                        val_str = str(cell_val).strip()
-                        for old_col in OLD_FORMAT_MAPPING.keys():
-                            if old_col in val_str:
-                                col_mapping[old_col] = i
-                                break
-                
-                return 'old', row_idx, col_mapping
-        
-        return 'unknown', 0, {}
-    
     def load_catalog(self, file_path: str) -> bool:
-        """Load catalog from XLSX file with new format support"""
+        """Load catalog from XLSX file"""
         try:
             file_path_obj = Path(file_path)
             if not file_path_obj.exists():
@@ -173,52 +73,28 @@ class CatalogHandler:
             self.categories = []
             self.images = {}
             self.catalog_file_path = file_path
-            self.format_detected = None
             
             # Load workbook for image extraction
             workbook = openpyxl.load_workbook(file_path)
             
-            formats_found = []
-            
             # Process each worksheet
             for sheet_name in workbook.sheetnames:
-                self.logger.info(f"Processing sheet: {sheet_name}")
-                
                 worksheet = workbook[sheet_name]
                 self.extract_images_from_sheet(worksheet, sheet_name)
                 
-                # Read sheet without header to detect format
+                # Process data with pandas for easier manipulation
                 df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
+                items = self.process_sheet_data(df, sheet_name)
                 
-                # Detect format
-                format_type, header_row, col_mapping = self.detect_sheet_format(df)
-                formats_found.append(format_type)
-                
-                if format_type != 'unknown':
-                    items = self.process_sheet_data_v2(df, sheet_name, format_type, header_row, col_mapping)
-                    if items:
-                        self.catalog_data.extend(items)
-                else:
-                    self.logger.warning(f"Unknown format in sheet {sheet_name}, trying fallback")
-                    # Try old processing method as fallback
-                    items = self.process_sheet_data(df, sheet_name)
-                    if items:
-                        self.catalog_data.extend(items)
+                if items:
+                    self.catalog_data.extend(items)
             
             workbook.close()
-            
-            # Determine overall format
-            if 'new' in formats_found:
-                self.format_detected = 'new' if formats_found.count('new') > formats_found.count('old') else 'mixed'
-            elif 'old' in formats_found:
-                self.format_detected = 'old'
-            else:
-                self.format_detected = 'unknown'
             
             # Save to cache
             self.save_cached_catalog()
             
-            self.logger.info(f"Loaded {len(self.catalog_data)} items from catalog (format: {self.format_detected})")
+            self.logger.info(f"Loaded {len(self.catalog_data)} items from catalog")
             return True
             
         except Exception as e:
@@ -258,127 +134,6 @@ class CatalogHandler:
                     
         except Exception as e:
             self.logger.warning(f"Failed to extract images from {sheet_name}: {e}")
-    
-    def process_sheet_data_v2(self, df: pd.DataFrame, sheet_name: str, format_type: str, header_row: int, col_mapping: Dict[str, int]) -> List[Dict[str, Any]]:
-        """Process sheet data using new format detection"""
-        items = []
-        current_category = "ללא קטגוריה"
-        
-        try:
-            # Use appropriate mapping based on format
-            if format_type == 'new':
-                field_mapping = NEW_FORMAT_MAPPING
-            else:
-                field_mapping = OLD_FORMAT_MAPPING
-            
-            # Process rows after header
-            for idx in range(header_row + 1, len(df)):
-                row = df.iloc[idx]
-                
-                # Extract values based on column mapping
-                item_data = {}
-                
-                for col_key, col_idx in col_mapping.items():
-                    if col_idx < len(row):
-                        value = row.iloc[col_idx]
-                        if pd.notna(value):
-                            item_data[col_key] = str(value).strip()
-                
-                # Skip empty rows
-                if not item_data:
-                    continue
-                
-                # For new format, check if this is a category row or item row
-                if format_type == 'new':
-                    name_col = 'NAME'
-                    category_col = 'CATEGORY'
-                    cost_col = 'COST'
-                else:
-                    name_col = 'הפריט'
-                    category_col = None  # Old format doesn't have category column
-                    cost_col = 'מחיר יחידה'
-                
-                name = item_data.get(name_col, '').strip()
-                cost = item_data.get(cost_col, '').strip()
-                
-                # If we have category column, use it
-                if category_col and category_col in item_data:
-                    category = item_data.get(category_col, '').strip()
-                    if category and category != current_category:
-                        current_category = category
-                        if category not in self.categories:
-                            self.categories.append(category)
-                
-                # Check if this is a category row (has name but no cost)
-                if name and not cost:
-                    current_category = name
-                    if current_category not in self.categories:
-                        self.categories.append(current_category)
-                    continue
-                
-                # Process item row
-                if name and cost:
-                    try:
-                        # Parse cost
-                        cost_val = float(str(cost).replace('₪', '').replace(',', '').replace('$', '').strip())
-                    except (ValueError, TypeError):
-                        cost_val = 0.0
-                    
-                    # Parse units
-                    unit_key = 'UNIT' if format_type == 'new' else 'יחידת מידה'
-                    units = item_data.get(unit_key, 'יח׳').strip()
-                    
-                    # Normalize units
-                    if units in ['מ"א', 'מטר', 'meter', 'linear meter']:
-                        units = 'מ"א'
-                    elif units in ['יח\'', 'יח', 'piece', 'unit', 'pieces']:
-                        units = 'יח׳'
-                    elif not units:
-                        units = 'יח׳'  # Default
-                    
-                    # Parse approval requirement
-                    approval_key = 'MANAGER APPROVED' if format_type == 'new' else 'דורש אישור'
-                    approval = item_data.get(approval_key, '').strip().lower()
-                    requires_approval = approval in ['כן', 'yes', 'y', 'true', '1']
-                    
-                    # Parse comments
-                    comment_key = 'COMMENT' if format_type == 'new' else 'הערות'
-                    comments = item_data.get(comment_key, '').strip()
-                    
-                    # Create item
-                    item = {
-                        'שם מוצר': name,
-                        'קטגוריה': current_category,
-                        'גיליון': sheet_name,
-                        'שורה': idx + 1,
-                        'כמות': 1,
-                        'מחיר': cost_val,
-                        'יחידה': units,
-                        'דורש אישור': requires_approval,
-                        'תיאור': comments,
-                        'תמונה': None,
-                        'קוד מוצר': '',
-                        'פורמט': format_type  # Track which format this item came from
-                    }
-                    
-                    # Look for image
-                    image_key = f"{sheet_name}_{idx}"
-                    if image_key in self.images:
-                        item['תמונה'] = self.images[image_key]
-                    else:
-                        # Try nearby rows for image
-                        for offset in [-1, 0, 1]:
-                            nearby_key = f"{sheet_name}_{idx + offset}"
-                            if nearby_key in self.images:
-                                item['תמונה'] = self.images[nearby_key]
-                                break
-                    
-                    items.append(item)
-                    
-        except Exception as e:
-            self.logger.error(f"Error processing sheet {sheet_name} with new format: {e}")
-        
-        return items
     
     def process_sheet_data(self, df: pd.DataFrame, sheet_name: str) -> List[Dict[str, Any]]:
         """Process sheet data to extract items with categories using Hebrew headers"""

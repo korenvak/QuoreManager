@@ -1,0 +1,119 @@
+{
+  "success": true,
+  "error": null,
+  "file_info": {
+    "path": "C:\\Users\\koren.vaknin\\Desktop\\filles\\develop\\Panel\\catalog.xlsx",
+    "size": 149214,
+    "name": "catalog.xlsx",
+    "sheet_count": 2,
+    "sheet_names": [
+      "גיליון1",
+      "גיליון2"
+    ]
+  },
+  "sheets": {
+    "גיליון1": {
+      "columns": [
+        "Unnamed: 0",
+        "Unnamed: 1",
+        "Unnamed: 2",
+        "Unnamed: 3",
+        "Unnamed: 4",
+        "Unnamed: 5",
+        "Unnamed: 6",
+        "Unnamed: 7",
+        "Unnamed: 8"
+      ],
+      "missing_columns": [
+        "item",
+        "category",
+        "units",
+        "cost",
+        "manager_approve",
+        "comments"
+      ],
+      "extra_columns": [
+        "Unnamed: 0",
+        "Unnamed: 1",
+        "Unnamed: 2",
+        "Unnamed: 3",
+        "Unnamed: 4",
+        "Unnamed: 5",
+        "Unnamed: 6",
+        "Unnamed: 7",
+        "Unnamed: 8"
+      ],
+      "row_count": 135,
+      "data_preview": [],
+      "issues": [
+        "Missing required column: item",
+        "Missing required column: category",
+        "Missing required column: units",
+        "Missing required column: cost",
+        "Missing required column: manager_approve",
+        "Missing required column: comments"
+      ],
+      "units_distribution": {},
+      "approval_stats": {},
+      "cost_analysis": {}
+    },
+    "גיליון2": {
+      "columns": [
+        "Unnamed: 0",
+        "Unnamed: 1",
+        "Unnamed: 2",
+        "Unnamed: 3",
+        "Unnamed: 4",
+        "Unnamed: 5",
+        "Unnamed: 6",
+        "Unnamed: 7",
+        "Unnamed: 8",
+        "Unnamed: 9",
+        "Unnamed: 10",
+        "Unnamed: 11",
+        "Unnamed: 12",
+        "Unnamed: 13"
+      ],
+      "missing_columns": [
+        "item",
+        "category",
+        "units",
+        "cost",
+        "manager_approve",
+        "comments"
+      ],
+      "extra_columns": [
+        "Unnamed: 0",
+        "Unnamed: 1",
+        "Unnamed: 2",
+        "Unnamed: 3",
+        "Unnamed: 4",
+        "Unnamed: 5",
+        "Unnamed: 6",
+        "Unnamed: 7",
+        "Unnamed: 8",
+        "Unnamed: 9",
+        "Unnamed: 10",
+        "Unnamed: 11",
+        "Unnamed: 12",
+        "Unnamed: 13"
+      ],
+      "row_count": 116,
+      "data_preview": [],
+      "issues": [
+        "Missing required column: item",
+        "Missing required column: category",
+        "Missing required column: units",
+        "Missing required column: cost",
+        "Missing required column: manager_approve",
+        "Missing required column: comments"
+      ],
+      "units_distribution": {},
+      "approval_stats": {},
+      "cost_analysis": {}
+    }
+  },
+  "issues": [],
+  "statistics": {
+    "total_items": 251,
+    "total_categories": 
