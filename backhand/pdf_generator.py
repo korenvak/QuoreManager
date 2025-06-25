@@ -303,47 +303,78 @@ def create_professional_pdf(customer_data, items_df, calculations, settings_mana
     c.setFont(PDF_FONT, 10)
     lines = legal_text.split('\n')
     
-    # Define minimum space needed for footer and signature area
-    footer_space = 60 * mm  # Space for footer + signature + margin
     line_height = 6 * mm
     
+    def wrap_text(text, font, font_size, max_width):
+        """Wrap text to fit within max_width"""
+        if not text.strip():
+            return ['']
+        
+        c.setFont(font, font_size)
+        words = text.split()
+        lines = []
+        current_line = ''
+        
+        for word in words:
+            test_line = current_line + (' ' if current_line else '') + word
+            test_line_rtl = rtl(test_line)
+            text_width = c.stringWidth(test_line_rtl, font, font_size)
+            
+            if text_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+                # Check if single word is too long
+                if c.stringWidth(rtl(word), font, font_size) > max_width:
+                    # Word is too long, we'll have to let it overflow
+                    pass
+        
+        if current_line:
+            lines.append(current_line)
+        
+        return lines if lines else ['']
+    
+    # Calculate maximum text width (page width minus margins)
+    max_text_width = W - 2 * m - 10 * mm  # Extra margin for safety
+    
     for line in lines:
-        # Check if we have enough space for this line plus footer
-        if text_y - line_height < footer_space:
-            # Need a new page
-            draw_footer(c, page_num, pages_total)
-            c.showPage()
-            page_num += 1
-            # Update total pages count for accurate page numbering
-            pages_total = max(pages_total, page_num)
-            draw_header(c)
-            draw_watermark(c)
-            c.setFillColorRGB(0, 0, 0)
-            text_y = H - 60*mm
-            # Continue with "תנאים והגבלות" header on new page if needed
-            if line.strip():  # Only if we have content to show
+        # Wrap long lines
+        wrapped_lines = wrap_text(line, PDF_FONT, 10, max_text_width)
+        
+        for wrapped_line in wrapped_lines:
+            # Check if we have enough space for this line plus signature area
+            if text_y - line_height < 50 * mm:  # Need space for signature (40mm) + footer (12mm)
+                # Need a new page
+                draw_footer(c, page_num, pages_total)
+                c.showPage()
+                page_num += 1
+                draw_header(c)
+                draw_watermark(c)
+                c.setFillColorRGB(0, 0, 0)
+                text_y = H - 60*mm
+                # Add continuation header on new page
                 draw_rtl(c, W - m, text_y, "תנאים והגבלות (המשך)", PDF_BOLD, 16)
                 text_y -= 15*mm
                 c.setFont(PDF_FONT, 10)
-        
-        if line.strip():  # Only draw non-empty lines
-            processed_line = rtl(line)
-            c.drawRightString(W - m, text_y, processed_line)
-        text_y -= line_height
+            
+            if wrapped_line.strip():  # Only draw non-empty lines
+                processed_line = rtl(wrapped_line)
+                c.drawRightString(W - m, text_y, processed_line)
+            text_y -= line_height
     
-    # Ensure we have enough space for signature area
-    if text_y - 40*mm < 20*mm:  # Not enough space for signature
+    # Draw signature line with adequate spacing
+    sig_y = text_y - 30*mm
+    if sig_y < 30*mm:  # Too close to bottom, need new page
         draw_footer(c, page_num, pages_total)
         c.showPage()
         page_num += 1
-        pages_total = max(pages_total, page_num)
         draw_header(c)
         draw_watermark(c)
         c.setFillColorRGB(0, 0, 0)
-        text_y = H - 60*mm
+        sig_y = H - 100*mm  # Place signature higher on new page
     
-    # Draw signature line
-    sig_y = text_y - 40*mm
     c.line(W - m - 80*mm, sig_y - 2*mm, W - m, sig_y - 2*mm)
     draw_rtl(c, W - m, sig_y, "חתימת הלקוח:")
     draw_footer(c, page_num, pages_total)
