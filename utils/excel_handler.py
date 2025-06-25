@@ -260,16 +260,27 @@ class CatalogHandler:
             self.logger.warning(f"Failed to extract images from {sheet_name}: {e}")
     
     def process_sheet_data_v2(self, df: pd.DataFrame, sheet_name: str, format_type: str, header_row: int, col_mapping: Dict[str, int]) -> List[Dict[str, Any]]:
-        """Process sheet data using new format detection"""
+        """Process sheet data using new format detection - focused on English columns only"""
         items = []
         current_category = "ללא קטגוריה"
         
         try:
-            # Use appropriate mapping based on format
+            # For new format, focus only on English columns
             if format_type == 'new':
-                field_mapping = NEW_FORMAT_MAPPING
+                name_col = 'NAME'
+                category_col = 'CATEGORY'
+                cost_col = 'COST'
+                unit_col = 'UNIT'
+                approval_col = 'MANAGER APPROVED'
+                comment_col = 'COMMENT'
             else:
-                field_mapping = OLD_FORMAT_MAPPING
+                # Old format fallback
+                name_col = 'הפריט'
+                category_col = None
+                cost_col = 'מחיר יחידה'
+                unit_col = 'יחידת מידה'
+                approval_col = 'דורש אישור'
+                comment_col = 'הערות'
             
             # Process rows after header
             for idx in range(header_row + 1, len(df)):
@@ -281,27 +292,21 @@ class CatalogHandler:
                 for col_key, col_idx in col_mapping.items():
                     if col_idx < len(row):
                         value = row.iloc[col_idx]
-                        if pd.notna(value):
+                        if pd.notna(value) and str(value).strip():
                             item_data[col_key] = str(value).strip()
                 
-                # Skip empty rows
+                # Skip completely empty rows
                 if not item_data:
                     continue
                 
-                # For new format, check if this is a category row or item row
-                if format_type == 'new':
-                    name_col = 'NAME'
-                    category_col = 'CATEGORY'
-                    cost_col = 'COST'
-                else:
-                    name_col = 'הפריט'
-                    category_col = None  # Old format doesn't have category column
-                    cost_col = 'מחיר יחידה'
-                
                 name = item_data.get(name_col, '').strip()
-                cost = item_data.get(cost_col, '').strip()
+                cost_str = item_data.get(cost_col, '').strip()
                 
-                # If we have category column, use it
+                # Skip rows without names
+                if not name:
+                    continue
+                
+                # If we have category column, use it to update current category
                 if category_col and category_col in item_data:
                     category = item_data.get(category_col, '').strip()
                     if category and category != current_category:
@@ -309,56 +314,67 @@ class CatalogHandler:
                         if category not in self.categories:
                             self.categories.append(category)
                 
-                # Check if this is a category row (has name but no cost)
-                if name and not cost:
+                # Check if this is a category row (has name but is clearly a category)
+                # For new format, we rely on the CATEGORY column, not inference
+                if format_type != 'new' and name and not cost_str:
+                    # Only for old format - treat as category
                     current_category = name
                     if current_category not in self.categories:
                         self.categories.append(current_category)
                     continue
                 
-                # Process item row
-                if name and cost:
-                    try:
-                        # Parse cost
-                        cost_val = float(str(cost).replace('₪', '').replace(',', '').replace('$', '').strip())
-                    except (ValueError, TypeError):
-                        cost_val = 0.0
+                # Process as item row (has name, may or may not have cost)
+                if name:
+                    # Parse cost - handle empty/missing costs
+                    cost_val = 0.0  # Default for custom pricing
+                    if cost_str:
+                        try:
+                            # Clean cost string
+                            clean_cost = str(cost_str).replace('₪', '').replace(',', '').replace('$', '').strip()
+                            if clean_cost:
+                                cost_val = float(clean_cost)
+                        except (ValueError, TypeError):
+                            cost_val = 0.0  # Set to 0 for custom pricing
                     
-                    # Parse units
-                    unit_key = 'UNIT' if format_type == 'new' else 'יחידת מידה'
-                    units = item_data.get(unit_key, 'יח׳').strip()
+                    # Parse units - handle empty/missing units
+                    units = item_data.get(unit_col, '').strip() if unit_col else ''
                     
                     # Normalize units
-                    if units in ['מ"א', 'מטר', 'meter', 'linear meter']:
-                        units = 'מ"א'
-                    elif units in ['יח\'', 'יח', 'piece', 'unit', 'pieces']:
-                        units = 'יח׳'
-                    elif not units:
-                        units = 'יח׳'  # Default
+                    if units:
+                        if units.lower() in ['מ"א', 'מטר', 'meter', 'linear meter', 'm', 'מ']:
+                            units = 'מ"א'
+                        elif units.lower() in ['יח\'', 'יח', 'piece', 'unit', 'pieces', 'pcs']:
+                            units = 'יח׳'
+                        elif units.lower() in ['מ"ר', 'מר', 'sqm', 'square meter', 'm2']:
+                            units = 'מ"ר'
+                        # Keep other units as-is
+                    else:
+                        # Empty units - set to empty string (quantity will be 1, no unit display in PDF)
+                        units = ''
                     
                     # Parse approval requirement
-                    approval_key = 'MANAGER APPROVED' if format_type == 'new' else 'דורש אישור'
-                    approval = item_data.get(approval_key, '').strip().lower()
-                    requires_approval = approval in ['כן', 'yes', 'y', 'true', '1']
+                    approval = item_data.get(approval_col, '').strip().lower() if approval_col else ''
+                    requires_approval = approval in ['n', 'no', 'false', '0', 'לא']  # 'n' means requires approval
                     
                     # Parse comments
-                    comment_key = 'COMMENT' if format_type == 'new' else 'הערות'
-                    comments = item_data.get(comment_key, '').strip()
+                    comments = item_data.get(comment_col, '').strip() if comment_col else ''
                     
-                    # Create item
+                    # Create item - always create if we have a name
                     item = {
                         'שם מוצר': name,
                         'קטגוריה': current_category,
                         'גיליון': sheet_name,
                         'שורה': idx + 1,
-                        'כמות': 1,
-                        'מחיר': cost_val,
-                        'יחידה': units,
+                        'כמות': 1,  # Default quantity
+                        'מחיר': cost_val,  # 0 for custom pricing
+                        'יחידה': units,  # Empty string for unitless items
                         'דורש אישור': requires_approval,
                         'תיאור': comments,
                         'תמונה': None,
                         'קוד מוצר': '',
-                        'פורמט': format_type  # Track which format this item came from
+                        'פורמט': format_type,  # Track which format this item came from
+                        'has_custom_pricing': cost_val == 0.0,  # Flag for items needing custom pricing
+                        'is_unitless': not bool(units)  # Flag for items without units
                     }
                     
                     # Look for image
@@ -374,6 +390,7 @@ class CatalogHandler:
                                 break
                     
                     items.append(item)
+                    self.logger.debug(f"Added item: {name}, Cost: {cost_val}, Units: '{units}', Custom: {cost_val == 0.0}")
                     
         except Exception as e:
             self.logger.error(f"Error processing sheet {sheet_name} with new format: {e}")

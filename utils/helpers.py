@@ -119,22 +119,26 @@ def normalize_phone(phone: str) -> str:
 
 def calculate_quote_totals(items: List[Dict], regular_discount: float = 0, 
                           contractor_discount: float = 0, vat_rate: float = 17.0) -> Dict[str, float]:
-    """Calculate quote totals with discounts and VAT"""
+    """Calculate quote totals with discounts and VAT
+    Order: Sum of items → × VAT → - Contractor → × Discount
+    """
+    # Step 1: Sum of items
     subtotal = sum(item.get('כמות', 0) * item.get('מחיר', 0) for item in items)
     
-    # Apply contractor discount first
-    contractor_discount_amount = subtotal * (contractor_discount / 100) if contractor_discount > 0 else 0
-    after_contractor_discount = subtotal - contractor_discount_amount
+    # Step 2: Apply VAT as multiplier (17% = 1.17)
+    vat_multiplier = 1 + (vat_rate / 100)  # 17% becomes 1.17
+    after_vat = subtotal * vat_multiplier
+    vat_amount = after_vat - subtotal  # Calculate VAT amount for display
     
-    # Apply regular discount
-    regular_discount_amount = after_contractor_discount * (regular_discount / 100) if regular_discount > 0 else 0
-    after_regular_discount = after_contractor_discount - regular_discount_amount
+    # Step 3: Subtract contractor discount (fixed amount)
+    contractor_discount_amount = contractor_discount  # Fixed amount, not percentage
+    after_contractor = after_vat - contractor_discount_amount
+    after_contractor = max(0, after_contractor)  # Can't go below 0
     
-    # Calculate VAT
-    vat_amount = after_regular_discount * (vat_rate / 100)
-    
-    # Final total
-    total = after_regular_discount + vat_amount
+    # Step 4: Apply regular discount as reduction factor (18% = 0.82)
+    discount_factor = 1 - (regular_discount / 100)  # 18% becomes 0.82
+    final_total = after_contractor * discount_factor
+    regular_discount_amount = after_contractor - final_total  # Calculate discount amount for display
     
     return {
         'subtotal': subtotal,
@@ -142,7 +146,7 @@ def calculate_quote_totals(items: List[Dict], regular_discount: float = 0,
         'discount_val': regular_discount_amount,
         'discount_percent': regular_discount,
         'vat_amount': vat_amount,
-        'final_total': total
+        'final_total': final_total
     }
 
 def generate_quote_filename(customer_name: str, quote_number: int, date: Optional[datetime] = None) -> str:

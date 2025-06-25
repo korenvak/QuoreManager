@@ -23,7 +23,7 @@ from utils.rtl import rtl
 logger = logging.getLogger(__name__)
 
 
-def create_professional_pdf(customer_data, items_df, calculations, settings_manager, quote_id, save_path, demo1=None, demo2=None):
+def create_professional_pdf(customer_data, items_df, calculations, settings_manager, quote_id, save_path, demo1=None, demo2=None, visualization_images=None, technical_images=None):
     """Create a modern, professional PDF quote and save it to the specified path."""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -75,6 +75,28 @@ def create_professional_pdf(customer_data, items_df, calculations, settings_mana
             except Exception as e:
                 logger.error(f"Error drawing watermark: {e}")
 
+    def process_image_for_pdf(img_path):
+        """Process image: rotate landscape to portrait, optimize for PDF"""
+        try:
+            img = PILImage.open(img_path)
+            
+            # Check if image is landscape (width > height)
+            if img.width > img.height:
+                # Rotate landscape to portrait
+                img = img.rotate(90, expand=True)
+                logger.info(f"Rotated landscape image to portrait: {img_path}")
+            
+            # Optimize image size for PDF (max 1920x1080 to keep file size reasonable)
+            max_width, max_height = 1920, 1080
+            if img.width > max_width or img.height > max_height:
+                img.thumbnail((max_width, max_height), PILImage.Resampling.LANCZOS)
+                logger.info(f"Resized image for PDF optimization: {img_path}")
+            
+            return img
+        except Exception as e:
+            logger.error(f"Error processing image {img_path}: {e}")
+            return None
+
     def draw_footer(canv, page, total):
         canv.setFillColorRGB(0.827, 0.184, 0.184)
         canv.rect(0, 0, W, 3 * mm, fill=1, stroke=0)
@@ -125,8 +147,15 @@ def create_professional_pdf(customer_data, items_df, calculations, settings_mana
     if num_items > items_per_first_page:
         additional_pages = ((num_items - items_per_first_page) // items_per_page) + 1
         pages_total += additional_pages
+    
+    # Count image pages (backward compatibility + new system)
     if demo1: pages_total += 1
     if demo2: pages_total += 1
+    if visualization_images:
+        pages_total += len(visualization_images)
+    if technical_images:
+        pages_total += len(technical_images)
+    
     pages_total += 1 # Legal text page
 
     page_num = 1
@@ -161,13 +190,84 @@ def create_professional_pdf(customer_data, items_df, calculations, settings_mana
     # Items Table
     y -= 15*mm
 
-    # Prepare data for ReportLab Table - including headers
-    items_df['total'] = items_df['כמות'] * items_df['מחיר']
+    # Prepare enhanced data for ReportLab Table with unit-aware formatting
+    def format_quantity_with_unit(row):
+        """Format quantity with proper unit display"""
+        quantity = row.get('כמות', 0)
+        unit = row.get('יחידה', '')
+        
+        # Format quantity based on unit type
+        if unit == 'יח׳':
+            # Integer quantities for pieces
+            qty_text = f"{int(quantity)}"
+        elif unit in ['מ"א', 'מ"ר']:
+            # Float quantities for meters, show decimals only if needed
+            if quantity == int(quantity):
+                qty_text = f"{int(quantity)}"
+            else:
+                qty_text = f"{quantity:.2f}".rstrip('0').rstrip('.')
+        else:
+            # Other units or no unit
+            if quantity == int(quantity):
+                qty_text = f"{int(quantity)}"
+            else:
+                qty_text = f"{quantity:.2f}".rstrip('0').rstrip('.')
+        
+        # Add unit if it exists and item is not unitless
+        if unit and unit.strip():
+            return f"{qty_text} {unit}"
+        else:
+            # For unitless items, don't show quantity in PDF (they are fixed cost)
+            return "1"
     
-    headers = [rtl(h) for h in ["סה\"כ", "מחיר", "כמות", "שם הפריט"]]
-    data = items_df[['שם מוצר', 'כמות', 'מחיר', 'total']].values.tolist()
-    data_rtl = [[rtl(str(cell)) for cell in row] for row in data]
-    data_rtl = [row[::-1] for row in data_rtl]
+    def format_price(price):
+        """Format price consistently"""
+        return f"₪{price:,.2f}"
+    
+    def format_total(quantity, price):
+        """Calculate and format total"""
+        total = quantity * price
+        return f"₪{total:,.2f}"
+    
+    # Process items with enhanced formatting
+    processed_data = []
+    for _, row in items_df.iterrows():
+        # Debug logging for item processing
+        logger.debug(f"Processing item: {row.get('שם מוצר', '')} - Price: {row.get('מחיר', 0)} - Unit: {row.get('יחידה', '')} - Quantity: {row.get('כמות', 0)}")
+        
+        # Format item name (truncate if too long)
+        item_name = str(row.get('שם מוצר', ''))
+        if len(item_name) > 50:
+            item_name = item_name[:47] + "..."
+        
+        # Format quantity with unit
+        qty_display = format_quantity_with_unit(row)
+        
+        # Format price - handle custom pricing (0 price items)
+        price = row.get('מחיר', 0)
+        if price == 0:
+            price_display = "מחיר מותאם"
+        else:
+            price_display = format_price(price)
+        
+        # Format total - handle custom pricing
+        if price == 0:
+            total_display = ""  # Leave empty for manual cost items
+        else:
+            total_display = format_total(row.get('כמות', 0), price)
+        
+        processed_data.append([item_name, qty_display, price_display, total_display])
+        logger.debug(f"Added to PDF: {item_name} | {qty_display} | {price_display} | {total_display}")
+    
+    # Create table headers
+    headers = [rtl(h) for h in ["סה\"כ", "מחיר יחידה", "כמות", "שם הפריט"]]
+    
+    # Convert data to RTL format
+    data_rtl = []
+    for row in processed_data:
+        rtl_row = [rtl(str(cell)) for cell in row]
+        data_rtl.append(rtl_row[::-1])  # Reverse for RTL
+    
     table_data = [headers] + data_rtl
     col_widths = [25*mm, 25*mm, 25*mm, W - (3*25*mm) - 2*m]
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
@@ -256,30 +356,82 @@ def create_professional_pdf(customer_data, items_df, calculations, settings_mana
     total_y -= 7*mm
     draw_total_row("סה\"כ לתשלום:", calculations['final_total'], is_bold=True, is_final=True)
     draw_footer(c, page_num, pages_total)
-    image_paths = [demo1, demo2]
-    for img_path in image_paths:
-        if img_path and os.path.exists(img_path):
-            try:
-                c.showPage()
-                page_num += 1
-                pages_total += 1
-                draw_header(c)
-                draw_watermark(c)
-                img = PILImage.open(img_path)
-                img_w, img_h = img.size
+    
+    def add_image_page(img_path, title="תמונה"):
+        """Add a single image page with title"""
+        nonlocal page_num
+        try:
+            if not img_path or not os.path.exists(img_path):
+                return
+                
+            c.showPage()
+            page_num += 1
+            draw_header(c)
+            draw_watermark(c)
+            
+            # Add title
+            c.setFillColorRGB(0, 0, 0)
+            draw_rtl(c, W - m, H - 65*mm, title, PDF_BOLD, 16)
+            
+            # Process image (handle landscape, resize)
+            processed_img = process_image_for_pdf(img_path)
+            if processed_img:
+                # Convert PIL image to temporary file for ReportLab
+                temp_buffer = BytesIO()
+                processed_img.save(temp_buffer, format='PNG')
+                temp_buffer.seek(0)
+                
+                img_reader = ImageReader(temp_buffer)
+                img_w, img_h = processed_img.size
+                
                 available_width = W - 2 * m
-                available_height = H - 80*mm
+                available_height = H - 100*mm  # Leave space for title and footer
+                
+                scale_w = available_width / img_w
+                scale_h = available_height / img_h
+                scale = min(scale_w, scale_h)
+                
+                new_w = img_w * scale
+                new_h = img_h * scale
+                
+                x_pos = (W - new_w) / 2
+                y_pos = (H - new_h) / 2 - 30*mm  # Adjusted for title
+                
+                c.drawImage(img_reader, x_pos, y_pos, width=new_w, height=new_h, preserveAspectRatio=True, mask='auto')
+            else:
+                # Fallback to original method
+                img_reader = ImageReader(img_path)
+                img_w, img_h = img_reader.getSize()
+                available_width = W - 2 * m
+                available_height = H - 100*mm
                 scale_w = available_width / img_w
                 scale_h = available_height / img_h
                 scale = min(scale_w, scale_h)
                 new_w = img_w * scale
                 new_h = img_h * scale
                 x_pos = (W - new_w) / 2
-                y_pos = (H - new_h) / 2 - 20*mm
-                c.drawImage(ImageReader(img_path), x_pos, y_pos, width=new_w, height=new_h, preserveAspectRatio=True, mask='auto')
-                draw_footer(c, page_num, pages_total)
-            except Exception as e:
-                logger.error(f"Could not process image {img_path}: {e}")
+                y_pos = (H - new_h) / 2 - 30*mm
+                c.drawImage(img_reader, x_pos, y_pos, width=new_w, height=new_h, preserveAspectRatio=True, mask='auto')
+            
+            draw_footer(c, page_num, pages_total)
+            
+        except Exception as e:
+            logger.error(f"Could not process image {img_path}: {e}")
+    
+    # Backward compatibility: Handle old demo1, demo2 parameters
+    if demo1:
+        add_image_page(demo1, "הדמיה")
+    if demo2:
+        add_image_page(demo2, "הדמיה")
+    
+    # New categorized image system
+    if visualization_images:
+        for img_path in visualization_images:
+            add_image_page(img_path, "הדמיה")
+    
+    if technical_images:
+        for img_path in technical_images:
+            add_image_page(img_path, "הדמיית נקודות מים וחשמל")
     c.showPage()
     page_num += 1
     draw_header(c)

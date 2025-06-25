@@ -474,16 +474,23 @@ class DatabaseManager:
             contractor_discount = quote_data['contractor_discount']
             vat_rate = quote_data['vat_rate']
             
-            # Calculate discount amounts
+            # Calculate using the correct order: Sum → × VAT → - Contractor → × Discount
+            # Step 1: Subtotal (already calculated)
+            
+            # Step 2: Apply VAT as multiplier (17% = 1.17)
+            vat_multiplier = 1 + (vat_rate / 100)
+            after_vat = subtotal * vat_multiplier
+            vat_amount = after_vat - subtotal
+            
+            # Step 3: Subtract contractor discount (fixed amount)
             contractor_discount_amount = contractor_discount  # Fixed amount
-            after_contractor = subtotal - contractor_discount_amount
+            after_contractor = after_vat - contractor_discount_amount
             after_contractor = max(0, after_contractor)
             
-            regular_discount_amount = after_contractor * (regular_discount / 100)
-            after_regular = after_contractor - regular_discount_amount
-            
-            vat_amount = after_regular * (vat_rate / 100)
-            final_total = after_regular + vat_amount
+            # Step 4: Apply regular discount as reduction factor (18% = 0.82)
+            discount_factor = 1 - (regular_discount / 100)
+            final_total = after_contractor * discount_factor
+            regular_discount_amount = after_contractor - final_total
             
             # Add calculated amounts to quote data
             quote_data.update({
@@ -610,16 +617,23 @@ class DatabaseManager:
                         contractor_discount = quote.contractor_discount
                         vat_rate = quote.vat_rate
                         
-                        # Calculate discount amounts
+                        # Calculate using the correct order: Sum → × VAT → - Contractor → × Discount
+                        # Step 1: Subtotal (already calculated)
+                        
+                        # Step 2: Apply VAT as multiplier (17% = 1.17)
+                        vat_multiplier = 1 + (vat_rate / 100)
+                        after_vat = subtotal * vat_multiplier
+                        vat_amount = after_vat - subtotal
+                        
+                        # Step 3: Subtract contractor discount (fixed amount)
                         contractor_discount_amount = contractor_discount  # Fixed amount
-                        after_contractor = subtotal - contractor_discount_amount
+                        after_contractor = after_vat - contractor_discount_amount
                         after_contractor = max(0, after_contractor)
                         
-                        regular_discount_amount = after_contractor * (regular_discount / 100)
-                        after_regular = after_contractor - regular_discount_amount
-                        
-                        vat_amount = after_regular * (vat_rate / 100)
-                        final_total = after_regular + vat_amount
+                        # Step 4: Apply regular discount as reduction factor (18% = 0.82)
+                        discount_factor = 1 - (regular_discount / 100)
+                        final_total = after_contractor * discount_factor
+                        regular_discount_amount = after_contractor - final_total
                         
                         # Update calculated amounts
                         quote.discount_amount = regular_discount_amount

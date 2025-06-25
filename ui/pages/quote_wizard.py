@@ -292,11 +292,36 @@ class QuoteWizard:
         else:
             self.prev_button.configure(state="normal")
         
-        # Next/Finish button
+        # Next/Finish button - check for approval requirements
         if self.current_step == self.max_steps:
-            self.next_button.configure(text="סיום ושמירה ✓")
+            # Check if any items require approval for non-admin/manager users
+            user_role = self.current_user.get('role', 'viewer')
+            if user_role not in ['admin', 'manager']:
+                # Check if any selected items require approval
+                approval_required = False
+                if hasattr(self, 'selected_items') and self.selected_items:
+                    catalog_handler = CatalogHandler()
+                    catalog_items = catalog_handler.get_catalog_items()
+                    
+                    for item in self.selected_items:
+                        item_name = item.get('שם מוצר', item.get('name', ''))
+                        # Find matching catalog item
+                        for cat_item in catalog_items:
+                            if cat_item.get('שם מוצר') == item_name:
+                                if cat_item.get('דורש אישור', False):
+                                    approval_required = True
+                                    break
+                        if approval_required:
+                            break
+                
+                if approval_required:
+                    self.next_button.configure(text="שמור כטיוטה לאישור ⚠️", fg_color="#F59E0B", hover_color="#D97706")
+                else:
+                    self.next_button.configure(text="סיום ושמירה ✓", fg_color="#3B82F6", hover_color="#2563EB")
+            else:
+                self.next_button.configure(text="סיום ושמירה ✓", fg_color="#3B82F6", hover_color="#2563EB")
         else:
-            self.next_button.configure(text="הבא ▶")
+            self.next_button.configure(text="הבא ▶", fg_color="#3B82F6", hover_color="#2563EB")
         
         # Enable/disable based on step validation
         can_proceed = self.validate_current_step()
@@ -797,15 +822,25 @@ class QuoteWizard:
         price_info_frame.pack(fill="x", anchor="e", pady=(3, 0))
         
         price = item.get('מחיר', 0)
-        units = item.get('יחידה', 'יח׳')
+        units = item.get('יחידה', '')
+        has_custom_pricing = item.get('has_custom_pricing', False) or price == 0
+        is_unitless = item.get('is_unitless', False) or not units
         
         # Price display with unit info
-        if price and price > 0:
-            price_text = f"₪{price:,.0f} / {units}"
-            price_color = "#10B981"  # Green for available pricing
+        if has_custom_pricing:
+            if is_unitless:
+                price_text = "מחיר לפי הזמנה"
+                price_color = "#F59E0B"  # Orange for custom pricing
+            else:
+                price_text = f"מחיר מותאם / {units}"
+                price_color = "#F59E0B"  # Orange for custom pricing
         else:
-            price_text = f"מחיר מותאם / {units}"
-            price_color = "#F59E0B"  # Orange for custom pricing
+            if is_unitless:
+                price_text = f"₪{price:,.0f} - פריט קבוע"
+                price_color = "#10B981"  # Green for fixed pricing
+            else:
+                price_text = f"₪{price:,.0f} / {units}"
+                price_color = "#10B981"  # Green for available pricing
         
         price_label = ctk.CTkLabel(
             price_info_frame,
@@ -817,15 +852,18 @@ class QuoteWizard:
         price_label.pack(anchor="e")
         
         # Unit explanation
-        if units == 'מ"א':
+        if is_unitless:
+            unit_text = "פריט ללא יחידות - כמות קבועה: 1"
+            unit_color = "#6B7280"  # Gray for unitless items
+        elif units == 'מ"א':
             unit_text = "מטר אורך - כמות עשרונית"
             unit_color = "#8B5CF6"  # Purple for linear meters
         elif units == 'יח׳':
             unit_text = "יחידות - כמות שלמה"
             unit_color = "#3B82F6"  # Blue for pieces
         else:
-            unit_text = f"יחידה: {units}"
-            unit_color = "#6B7280"  # Gray for other units
+            unit_text = f"יחידה: {units}" if units else "ללא יחידות"
+            unit_color = "#6B7280"  # Gray for other/unknown units
         
         unit_explanation = ctk.CTkLabel(
             price_info_frame,
@@ -872,9 +910,11 @@ class QuoteWizard:
     def add_to_cart_with_dialog(self, item):
         """Add item to cart with quantity and custom price dialog if needed"""
         try:
-            units = item.get('יחידה', 'יח׳')
+            units = item.get('יחידה', '')
             price = item.get('מחיר', 0)
             requires_approval = item.get('דורש אישור', False)
+            has_custom_pricing = item.get('has_custom_pricing', False) or price == 0
+            is_unitless = item.get('is_unitless', False) or not units
             
             # Check approval permissions
             if requires_approval:
@@ -886,7 +926,7 @@ class QuoteWizard:
             # Create dialog for quantity (and custom price if needed)
             dialog = ctk.CTkToplevel(self.dialog)
             dialog.title("הוסף פריט לסל")
-            dialog.geometry("400x500")
+            dialog.geometry("400x550")
             dialog.transient(self.dialog)
             dialog.grab_set()
             
@@ -921,6 +961,28 @@ class QuoteWizard:
                 anchor="center"
             ).pack(pady=15)
             
+            # Unit and pricing info
+            if is_unitless:
+                unit_info = "פריט ללא יחידות מידה - כמות: 1"
+                quantity_var = ctk.StringVar(value="1")  # Fixed quantity for unitless items
+                show_quantity_input = False
+            else:
+                if units == 'מ"א':
+                    unit_info = f"יחידה: {units} - ניתן להזין כמות עשרונית"
+                elif units == 'יח׳':
+                    unit_info = f"יחידה: {units} - כמות שלמה בלבד"
+                else:
+                    unit_info = f"יחידה: {units}"
+                quantity_var = ctk.StringVar(value="1")
+                show_quantity_input = True
+            
+            ctk.CTkLabel(
+                info_card,
+                text=unit_info,
+                font=ctk.CTkFont(family="Assistant", size=12),
+                text_color="#6B7280"
+            ).pack(pady=(0, 15))
+            
             # Approval warning
             if requires_approval:
                 warning_frame = ctk.CTkFrame(main_frame, fg_color="#FEF2F2", corner_radius=8)
@@ -942,59 +1004,59 @@ class QuoteWizard:
                         text_color="#DC2626"
                     ).pack(pady=(0, 10))
             
-            # Quantity input
-            qty_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-            qty_frame.pack(fill="x", pady=(0, 15))
-            
-            ctk.CTkLabel(
-                qty_frame,
-                text=f"כמות ({units}):",
-                font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
-                anchor="e"
-            ).pack(anchor="e")
-            
-            # Unit-specific quantity input
-            quantity_var = ctk.StringVar(value="1")
-            
-            if units == 'יח׳':
-                # Integer only for pieces
-                qty_entry = ctk.CTkEntry(
+            # Quantity input (only if not unitless)
+            if show_quantity_input:
+                qty_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+                qty_frame.pack(fill="x", pady=(0, 15))
+                
+                ctk.CTkLabel(
                     qty_frame,
-                    textvariable=quantity_var,
-                    placeholder_text="הזן כמות שלמה (1, 2, 3...)",
-                    font=ctk.CTkFont(family="Assistant", size=14),
-                    height=40
-                )
-                help_text = "כמות שלמה בלבד (יחידות)"
-            else:
-                # Float allowed for linear meters
-                qty_entry = ctk.CTkEntry(
+                    text=f"כמות ({units}):",
+                    font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
+                    anchor="e"
+                ).pack(anchor="e")
+                
+                # Unit-specific quantity input
+                if units == 'יח׳':
+                    # Integer only for pieces
+                    qty_entry = ctk.CTkEntry(
+                        qty_frame,
+                        textvariable=quantity_var,
+                        placeholder_text="הזן כמות שלמה (1, 2, 3...)",
+                        font=ctk.CTkFont(family="Assistant", size=14),
+                        height=40
+                    )
+                    help_text = "כמות שלמה בלבד (יחידות)"
+                else:
+                    # Float allowed for linear meters
+                    qty_entry = ctk.CTkEntry(
+                        qty_frame,
+                        textvariable=quantity_var,
+                        placeholder_text="הזן כמות (1.5, 2.25...)",
+                        font=ctk.CTkFont(family="Assistant", size=14),
+                        height=40
+                    )
+                    help_text = "ניתן להזין כמות עשרונית"
+                
+                qty_entry.pack(fill="x", pady=(5, 0))
+                
+                ctk.CTkLabel(
                     qty_frame,
-                    textvariable=quantity_var,
-                    placeholder_text="הזן כמות (1.5, 2.25...)",
-                    font=ctk.CTkFont(family="Assistant", size=14),
-                    height=40
-                )
-                help_text = "ניתן להזין כמות עשרונית (מטר אורך)"
-            
-            qty_entry.pack(fill="x", pady=(5, 0))
-            
-            ctk.CTkLabel(
-                qty_frame,
-                text=help_text,
-                font=ctk.CTkFont(family="Assistant", size=11),
-                text_color="#6B7280"
-            ).pack(anchor="e", pady=(2, 0))
+                    text=help_text,
+                    font=ctk.CTkFont(family="Assistant", size=11),
+                    text_color="#6B7280"
+                ).pack(anchor="e", pady=(2, 0))
             
             # Custom price (if needed)
             custom_price_var = None
-            if not price or price <= 0:
+            if has_custom_pricing:
                 price_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
                 price_frame.pack(fill="x", pady=(0, 15))
                 
+                price_label_text = "מחיר מותאם (₪):" if not is_unitless else "מחיר כולל (₪):"
                 ctk.CTkLabel(
                     price_frame,
-                    text="מחיר מותאם (₪):",
+                    text=price_label_text,
                     font=ctk.CTkFont(family="Assistant", size=14, weight="bold"),
                     anchor="e"
                 ).pack(anchor="e")
@@ -1009,9 +1071,10 @@ class QuoteWizard:
                 )
                 price_entry.pack(fill="x", pady=(5, 0))
                 
+                price_help_text = "מחיר כולל לפריט" if is_unitless else f"מחיר לפי {units if units else 'יחידה'}"
                 ctk.CTkLabel(
                     price_frame,
-                    text="מחיר לפי יחידה",
+                    text=price_help_text,
                     font=ctk.CTkFont(family="Assistant", size=11),
                     text_color="#6B7280"
                 ).pack(anchor="e", pady=(2, 0))
@@ -1022,31 +1085,35 @@ class QuoteWizard:
             
             def add_item():
                 try:
-                    # Validate quantity
-                    qty_text = quantity_var.get().strip()
-                    if not qty_text:
-                        messagebox.showerror("שגיאה", "יש להזין כמות")
-                        return
-                    
-                    # Parse quantity based on unit type
-                    if units == 'יח׳':
-                        # Integer only
-                        try:
-                            quantity = int(float(qty_text))  # Parse as float then convert to int
-                            if quantity <= 0:
-                                raise ValueError()
-                        except ValueError:
-                            messagebox.showerror("שגיאה", "יש להזין כמות שלמה חיובית")
-                            return
+                    # Handle quantity based on item type
+                    if is_unitless:
+                        quantity = 1  # Fixed quantity for unitless items
                     else:
-                        # Float allowed
-                        try:
-                            quantity = float(qty_text)
-                            if quantity <= 0:
-                                raise ValueError()
-                        except ValueError:
-                            messagebox.showerror("שגיאה", "יש להזין כמות חיובית")
+                        # Validate quantity
+                        qty_text = quantity_var.get().strip()
+                        if not qty_text:
+                            messagebox.showerror("שגיאה", "יש להזין כמות")
                             return
+                        
+                        # Parse quantity based on unit type
+                        if units == 'יח׳':
+                            # Integer only
+                            try:
+                                quantity = int(float(qty_text))  # Parse as float then convert to int
+                                if quantity <= 0:
+                                    raise ValueError()
+                            except ValueError:
+                                messagebox.showerror("שגיאה", "יש להזין כמות שלמה חיובית")
+                                return
+                        else:
+                            # Float allowed
+                            try:
+                                quantity = float(qty_text)
+                                if quantity <= 0:
+                                    raise ValueError()
+                            except ValueError:
+                                messagebox.showerror("שגיאה", "יש להזין כמות חיובית")
+                                return
                     
                     # Get final price
                     final_price = price
@@ -1095,8 +1162,11 @@ class QuoteWizard:
             )
             cancel_button.pack(side="right")
             
-            # Focus on quantity entry
-            qty_entry.focus()
+            # Focus on appropriate entry
+            if show_quantity_input:
+                qty_entry.focus()
+            elif custom_price_var:
+                price_entry.focus()
             
         except Exception as e:
             messagebox.showerror("שגיאה", f"שגיאה בפתיחת דיאלוג: {e}")
@@ -1176,11 +1246,10 @@ class QuoteWizard:
                 header.pack(fill="x", padx=5, pady=(5, 2))
                 header.grid_columnconfigure(0, weight=0)  # Quantity
                 header.grid_columnconfigure(1, weight=3)  # Name
-                header.grid_columnconfigure(2, weight=2)  # Category
-                header.grid_columnconfigure(3, weight=2)  # Total
-                header.grid_columnconfigure(4, weight=0)  # Remove
+                header.grid_columnconfigure(2, weight=2)  # Total
+                header.grid_columnconfigure(3, weight=0)  # Remove
                 
-                for col, text in enumerate(["כמות", "שם מוצר", "קטגוריה", "סה\"כ", "הסר"]):
+                for col, text in enumerate(["כמות", "שם מוצר", "סה\"כ", "הסר"]):
                     label = ctk.CTkLabel(header, text=text, font=ctk.CTkFont(family="Heebo", size=15, weight="bold"), anchor="center")
                     label.grid(row=0, column=col, padx=8, pady=8, sticky="ew")
                 
@@ -1213,8 +1282,7 @@ class QuoteWizard:
                     row.grid_columnconfigure(0, weight=0)
                     row.grid_columnconfigure(1, weight=3)
                     row.grid_columnconfigure(2, weight=2)
-                    row.grid_columnconfigure(3, weight=2)
-                    row.grid_columnconfigure(4, weight=0)
+                    row.grid_columnconfigure(3, weight=0)
                     
                     # Quantity (editable with unit awareness)
                     item_units = item.get('יחידה', 'יח׳')
@@ -1291,12 +1359,10 @@ class QuoteWizard:
                     font_price = ctk.CTkFont(family="Heebo", size=15, weight="bold")
                     
                     ctk.CTkLabel(row, text=item['name'], anchor="e", font=font_row).grid(row=0, column=1, padx=8, pady=8, sticky="ew")
-                    # Category
-                    ctk.CTkLabel(row, text=item['category'], anchor="center", font=font_category, text_color="#6B7280").grid(row=0, column=2, padx=8, pady=8, sticky="ew")
                     # Item total
                     item_total = item['price'] * item['quantity']
                     total += item_total
-                    ctk.CTkLabel(row, text=f"₪{item_total:,.0f}", anchor="center", font=font_price, text_color="#10B981").grid(row=0, column=3, padx=8, pady=8, sticky="ew")
+                    ctk.CTkLabel(row, text=f"₪{item_total:,.0f}", anchor="center", font=font_price, text_color="#10B981").grid(row=0, column=2, padx=8, pady=8, sticky="ew")
                     # Remove button
                     remove_btn = ctk.CTkButton(
                         row, 
@@ -1309,7 +1375,7 @@ class QuoteWizard:
                         corner_radius=6,
                         command=lambda i=idx: self.remove_from_cart(i)
                     )
-                    remove_btn.grid(row=0, column=4, padx=8, pady=8)
+                    remove_btn.grid(row=0, column=3, padx=8, pady=8)
                 
                 if hasattr(self, 'total_label') and self.total_label:
                     self.total_label.configure(text=f"סה\"כ: ₪{total:,.2f}")
@@ -1765,7 +1831,7 @@ class QuoteWizard:
                 except (ValueError, AttributeError):
                     vat_rate = self.quote_data.get('vat_rate', 17.0)
             
-            # Calculate subtotal from selected items
+            # Step 1: Sum of items
             subtotal = 0.0
             if self.selected_items:
                 subtotal = sum(
@@ -1774,18 +1840,20 @@ class QuoteWizard:
                     for item in self.selected_items
                 )
             
-            # Step 1: Subtract contractor discount from subtotal (fixed amount)
+            # Step 2: Apply VAT as multiplier (17% = 1.17)
+            vat_multiplier = 1 + (vat_rate / 100)  # 17% becomes 1.17
+            after_vat = subtotal * vat_multiplier
+            vat_amount = after_vat - subtotal  # Calculate VAT amount for display
+            
+            # Step 3: Subtract contractor discount (fixed amount)
             contractor_discount_amount = contractor_discount  # Fixed amount, not percentage
-            after_contractor = subtotal - contractor_discount_amount
+            after_contractor = after_vat - contractor_discount_amount
             after_contractor = max(0, after_contractor)  # Can't go below 0
             
-            # Step 2: Apply regular discount percentage to the amount after contractor discount
-            regular_discount_amount = after_contractor * (regular_discount / 100)
-            after_regular = after_contractor - regular_discount_amount
-            
-            # Step 3: Apply VAT to final amount
-            vat_amount = after_regular * (vat_rate / 100)
-            final_total = after_regular + vat_amount
+            # Step 4: Apply regular discount as reduction factor (18% = 0.82)
+            discount_factor = 1 - (regular_discount / 100)  # 18% becomes 0.82
+            final_total = after_contractor * discount_factor
+            regular_discount_amount = after_contractor - final_total  # Calculate discount amount for display
             
             # Store in quote data with all the fields the PDF generator expects
             self.quote_data.update({
@@ -1979,7 +2047,7 @@ class QuoteWizard:
         if self.quote_data.get('notes'):
             self.notes_textbox.insert("1.0", self.quote_data['notes'])
         
-        # Image upload section with modern styling
+        # Enhanced Image upload section with categories
         images_frame = ctk.CTkFrame(
             main_container, 
             fg_color="#F8FAFC", 
@@ -1991,136 +2059,37 @@ class QuoteWizard:
         
         images_title = ctk.CTkLabel(
             images_frame,
-            text="תמונות להצעה (עד 2 תמונות)",
+            text="תמונות להצעה (ללא הגבלה)",
             font=ctk.CTkFont(family="Heebo", size=18, weight="bold"),
             text_color="#1F2937"
         )
-        images_title.pack(pady=(20, 15))
+        images_title.pack(pady=(20, 10))
+        
+        images_subtitle = ctk.CTkLabel(
+            images_frame,
+            text="כל תמונה תופיע בעמוד נפרד ב-PDF. תמונות לרוחב יסובבו אוטומטית לאורך.",
+            font=ctk.CTkFont(family="Heebo", size=13, weight="normal"),
+            text_color="#6B7280"
+        )
+        images_subtitle.pack(pady=(0, 15))
         
         # Image upload container with modern styling
         images_container = ctk.CTkFrame(images_frame, fg_color="transparent")
         images_container.pack(fill="x", padx=25, pady=(0, 20))
         
-        # Initialize images list if not exists
+        # Initialize images list if not exists (backward compatibility)
         if 'images' not in self.quote_data:
             self.quote_data['images'] = []
         
-        # Image 1 with modern card styling
-        img1_frame = ctk.CTkFrame(
-            images_container, 
-            fg_color="#FFFFFF", 
-            border_width=1, 
-            border_color="#D1D5DB",
-            corner_radius=12
-        )
-        img1_frame.pack(side="right", fill="x", expand=True, padx=(0, 10))
+        # Initialize new categorized image system
+        if 'visualization_images' not in self.quote_data:
+            self.quote_data['visualization_images'] = []
+        if 'technical_images' not in self.quote_data:
+            self.quote_data['technical_images'] = []
         
-        img1_label = ctk.CTkLabel(
-            img1_frame,
-            text="תמונה 1:",
-            font=ctk.CTkFont(family="Heebo", size=16, weight="bold"),
-            text_color="#1F2937",
-            anchor="e"
-        )
-        img1_label.pack(anchor="e", pady=(15, 8))
-        
-        self.img1_path_label = ctk.CTkLabel(
-            img1_frame,
-            text="לא נבחרה תמונה",
-            font=ctk.CTkFont(family="Heebo", size=13, weight="normal"),
-            text_color="#6B7280",
-            anchor="e"
-        )
-        self.img1_path_label.pack(anchor="e", pady=(0, 10))
-        
-        img1_buttons = ctk.CTkFrame(img1_frame, fg_color="transparent")
-        img1_buttons.pack(fill="x", pady=(0, 15))
-        
-        img1_select_btn = ctk.CTkButton(
-            img1_buttons,
-            text="בחר תמונה",
-            font=ctk.CTkFont(family="Heebo", size=13, weight="bold"),
-            height=35,
-            fg_color="#3B82F6",
-            hover_color="#2563EB",
-            corner_radius=8,
-            command=lambda: self.select_image(1)
-        )
-        img1_select_btn.pack(side="right", padx=(0, 8))
-        
-        self.img1_remove_btn = ctk.CTkButton(
-            img1_buttons,
-            text="הסר",
-            font=ctk.CTkFont(family="Heebo", size=13, weight="bold"),
-            height=35,
-            width=70,
-            fg_color="#EF4444",
-            hover_color="#DC2626",
-            corner_radius=8,
-            command=lambda: self.remove_image(1),
-            state="disabled"
-        )
-        self.img1_remove_btn.pack(side="right")
-        
-        # Image 2 with modern card styling
-        img2_frame = ctk.CTkFrame(
-            images_container, 
-            fg_color="#FFFFFF", 
-            border_width=1, 
-            border_color="#D1D5DB",
-            corner_radius=12
-        )
-        img2_frame.pack(side="left", fill="x", expand=True, padx=(10, 0))
-        
-        img2_label = ctk.CTkLabel(
-            img2_frame,
-            text="תמונה 2:",
-            font=ctk.CTkFont(family="Heebo", size=16, weight="bold"),
-            text_color="#1F2937",
-            anchor="e"
-        )
-        img2_label.pack(anchor="e", pady=(15, 8))
-        
-        self.img2_path_label = ctk.CTkLabel(
-            img2_frame,
-            text="לא נבחרה תמונה",
-            font=ctk.CTkFont(family="Heebo", size=13, weight="normal"),
-            text_color="#6B7280",
-            anchor="e"
-        )
-        self.img2_path_label.pack(anchor="e", pady=(0, 10))
-        
-        img2_buttons = ctk.CTkFrame(img2_frame, fg_color="transparent")
-        img2_buttons.pack(fill="x", pady=(0, 15))
-        
-        img2_select_btn = ctk.CTkButton(
-            img2_buttons,
-            text="בחר תמונה",
-            font=ctk.CTkFont(family="Heebo", size=13, weight="bold"),
-            height=35,
-            fg_color="#3B82F6",
-            hover_color="#2563EB",
-            corner_radius=8,
-            command=lambda: self.select_image(2)
-        )
-        img2_select_btn.pack(side="right", padx=(0, 8))
-        
-        self.img2_remove_btn = ctk.CTkButton(
-            img2_buttons,
-            text="הסר",
-            font=ctk.CTkFont(family="Heebo", size=13, weight="bold"),
-            height=35,
-            width=70,
-            fg_color="#EF4444",
-            hover_color="#DC2626",
-            corner_radius=8,
-            command=lambda: self.remove_image(2),
-            state="disabled"
-        )
-        self.img2_remove_btn.pack(side="right")
-        
-        # Load existing images
-        self.update_image_labels()
+        # Create categorized image sections
+        self.create_image_category_section(images_container, "visualization", "הדמיה", "#3B82F6")
+        self.create_image_category_section(images_container, "technical", "הדמיית נקודות מים וחשמל", "#8B5CF6")
     
     def next_step(self):
         """Move to next step or finish"""
@@ -2186,10 +2155,48 @@ class QuoteWizard:
             if not self.selected_items:
                 messagebox.showerror("שגיאה", "יש לבחור לפחות פריט אחד")
                 return
-            # Enforce permission check right before saving
+            
+            # Check approval requirements - CRITICAL LOGIC
+            user_role = self.current_user.get('role', 'viewer')
+            
+            # First, check if any items require approval
+            approval_required_items = []
+            for item in self.selected_items:
+                # Get original catalog item to check approval status
+                item_name = item.get('שם מוצר', item.get('name', ''))
+                catalog_handler = CatalogHandler()
+                catalog_items = catalog_handler.get_catalog_items()
+                
+                # Find matching catalog item
+                catalog_item = None
+                for cat_item in catalog_items:
+                    if cat_item.get('שם מוצר') == item_name:
+                        catalog_item = cat_item
+                        break
+                
+                # Check if this item requires approval
+                if catalog_item and catalog_item.get('דורש אישור', False):
+                    approval_required_items.append(item_name)
+            
+            # If there are items requiring approval and user is not admin/manager, force save as draft
+            if approval_required_items and user_role not in ['admin', 'manager']:
+                items_list = '\n• '.join(approval_required_items)
+                result = messagebox.askquestion(
+                    "פריטים דורשים אישור",
+                    f"הפריטים הבאים דורשים אישור מנהל:\n\n• {items_list}\n\n"
+                    f"רק מנהל יכול לשמור הצעה עם פריטים אלה.\n"
+                    f"האם תרצה לשמור כטיוטה עבור אישור מנהל?",
+                    icon="warning"
+                )
+                if result == 'yes':
+                    self.save_draft()
+                    return
+                else:
+                    return
+            
+            # Enforce discount permission check right before saving
             regular_discount = self.quote_data.get('regular_discount', 0)
             user_max_discount = self.current_user.get('max_discount', 0.0)
-            user_role = self.current_user.get('role', 'viewer')
             has_unlimited_discount = user_role in ['admin', 'manager']
             if not has_unlimited_discount and regular_discount > user_max_discount:
                 messagebox.showerror(
@@ -2228,7 +2235,7 @@ class QuoteWizard:
                         subtotal=self.quote_data.get('subtotal', 0),
                         total_amount=self.quote_data.get('total_amount', 0),
                         notes=self.quote_data.get('notes', ''),
-                        images=self.quote_data.get('images', []),
+                        images=self._combine_images_for_database(),
                         acting_user_id=self.current_user['id']
                     )
                     if not success:
@@ -2254,7 +2261,7 @@ class QuoteWizard:
                         subtotal=self.quote_data.get('subtotal', 0),
                         total_amount=self.quote_data.get('total_amount', 0),
                         notes=self.quote_data.get('notes', ''),
-                        images=self.quote_data.get('images', [])
+                        images=self._combine_images_for_database()
                     )
                 except ValueError as ve:
                     messagebox.showerror("שגיאה בהרשאות", str(ve))
@@ -2548,8 +2555,160 @@ class QuoteWizard:
                 self.update_cart()
                 self.update_navigation_buttons()
 
+    def create_image_category_section(self, parent, category_key, title, color):
+        """Create an image category section with multiple image support"""
+        category_frame = ctk.CTkFrame(
+            parent,
+            fg_color="#FFFFFF",
+            border_width=1,
+            border_color="#D1D5DB",
+            corner_radius=12
+        )
+        category_frame.pack(fill="x", pady=(0, 15))
+        
+        # Category title
+        title_frame = ctk.CTkFrame(category_frame, fg_color="transparent")
+        title_frame.pack(fill="x", padx=20, pady=(15, 10))
+        
+        title_label = ctk.CTkLabel(
+            title_frame,
+            text=title,
+            font=ctk.CTkFont(family="Heebo", size=16, weight="bold"),
+            text_color=color,
+            anchor="e"
+        )
+        title_label.pack(anchor="e")
+        
+        # Images display frame
+        images_display_frame = ctk.CTkFrame(category_frame, fg_color="transparent")
+        images_display_frame.pack(fill="x", padx=20, pady=(0, 10))
+        
+        # Store reference for dynamic updates
+        setattr(self, f"{category_key}_images_display", images_display_frame)
+        
+        # Add image button
+        add_btn = ctk.CTkButton(
+            category_frame,
+            text=f"הוסף תמונה ל{title}",
+            font=ctk.CTkFont(family="Heebo", size=13, weight="bold"),
+            height=35,
+            fg_color=color,
+            hover_color=self.adjust_color_brightness(color, -20),
+            corner_radius=8,
+            command=lambda: self.add_categorized_image(category_key)
+        )
+        add_btn.pack(pady=(0, 15))
+        
+        # Update display
+        self.update_categorized_images_display(category_key)
+
+    def adjust_color_brightness(self, hex_color, adjustment):
+        """Adjust hex color brightness by a given amount"""
+        try:
+            # Remove # if present
+            hex_color = hex_color.lstrip('#')
+            # Convert to RGB
+            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            # Adjust brightness
+            rgb = tuple(max(0, min(255, c + adjustment)) for c in rgb)
+            # Convert back to hex
+            return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+        except:
+            return hex_color  # Return original if conversion fails
+
+    def add_categorized_image(self, category_key):
+        """Add an image to a specific category"""
+        from tkinter import filedialog
+        
+        filetypes = [
+            ("Image files", "*.jpg *.jpeg *.png *.gif *.bmp"),
+            ("JPEG files", "*.jpg *.jpeg"),
+            ("PNG files", "*.png"),
+            ("All files", "*.*")
+        ]
+        
+        image_path = filedialog.askopenfilename(
+            title=f"בחר תמונה לקטגוריה",
+            filetypes=filetypes
+        )
+        
+        if image_path:
+            list_key = f"{category_key}_images"
+            if list_key not in self.quote_data:
+                self.quote_data[list_key] = []
+            self.quote_data[list_key].append(image_path)
+            self.update_categorized_images_display(category_key)
+
+    def remove_categorized_image(self, category_key, index):
+        """Remove an image from a specific category"""
+        list_key = f"{category_key}_images"
+        if list_key in self.quote_data and 0 <= index < len(self.quote_data[list_key]):
+            self.quote_data[list_key].pop(index)
+            self.update_categorized_images_display(category_key)
+
+    def update_categorized_images_display(self, category_key):
+        """Update the display of images for a category"""
+        display_frame = getattr(self, f"{category_key}_images_display", None)
+        if not display_frame:
+            return
+        
+        # Clear existing display
+        for widget in display_frame.winfo_children():
+            widget.destroy()
+        
+        list_key = f"{category_key}_images"
+        images = self.quote_data.get(list_key, [])
+        
+        if not images:
+            no_images_label = ctk.CTkLabel(
+                display_frame,
+                text="לא נבחרו תמונות",
+                font=ctk.CTkFont(family="Heebo", size=12),
+                text_color="#9CA3AF",
+                anchor="e"
+            )
+            no_images_label.pack(anchor="e", pady=5)
+            return
+        
+        # Display images
+        for i, img_path in enumerate(images):
+            img_frame = ctk.CTkFrame(display_frame, fg_color="#F9FAFB", corner_radius=8)
+            img_frame.pack(fill="x", pady=2)
+            
+            img_info_frame = ctk.CTkFrame(img_frame, fg_color="transparent")
+            img_info_frame.pack(fill="x", padx=10, pady=8)
+            
+            # Image filename
+            import os
+            filename = os.path.basename(img_path)
+            if len(filename) > 40:
+                filename = filename[:37] + "..."
+            
+            img_label = ctk.CTkLabel(
+                img_info_frame,
+                text=f"{i+1}. {filename}",
+                font=ctk.CTkFont(family="Heebo", size=12),
+                text_color="#374151",
+                anchor="e"
+            )
+            img_label.pack(side="right", fill="x", expand=True)
+            
+            # Remove button
+            remove_btn = ctk.CTkButton(
+                img_info_frame,
+                text="הסר",
+                width=50,
+                height=25,
+                font=ctk.CTkFont(family="Heebo", size=11),
+                fg_color="#EF4444",
+                hover_color="#DC2626",
+                corner_radius=6,
+                command=lambda idx=i: self.remove_categorized_image(category_key, idx)
+            )
+            remove_btn.pack(side="left")
+
     def select_image(self, image_number):
-        """Select an image for the quote"""
+        """Select an image for the quote (backward compatibility)"""
         from tkinter import filedialog
         
         filetypes = [
@@ -2579,26 +2738,44 @@ class QuoteWizard:
             self.quote_data['images'][image_number - 1] = None
             self.update_image_labels()
 
-    def update_image_labels(self):
-        """Update the image path labels"""
-        # Update image 1
-        if hasattr(self, 'img1_path_label'):
-            if len(self.quote_data['images']) > 0 and self.quote_data['images'][0]:
-                import os
-                filename = os.path.basename(self.quote_data['images'][0])
-                self.img1_path_label.configure(text=filename, text_color="green")
-                self.img1_remove_btn.configure(state="normal")
-            else:
-                self.img1_path_label.configure(text="לא נבחרה תמונה", text_color="gray")
-                self.img1_remove_btn.configure(state="disabled")
+    def _combine_images_for_database(self):
+        """Combine categorized images into a single format for database storage"""
+        combined_images = []
         
-        # Update image 2
-        if hasattr(self, 'img2_path_label'):
-            if len(self.quote_data['images']) > 1 and self.quote_data['images'][1]:
-                import os
-                filename = os.path.basename(self.quote_data['images'][1])
-                self.img2_path_label.configure(text=filename, text_color="green")
-                self.img2_remove_btn.configure(state="normal")
-            else:
-                self.img2_path_label.configure(text="לא נבחרה תמונה", text_color="gray")
-                self.img2_remove_btn.configure(state="disabled") 
+        # Add old-style images for backward compatibility
+        old_images = self.quote_data.get('images', [])
+        for img in old_images:
+            if img:  # Filter out None values
+                combined_images.append({
+                    'path': img,
+                    'category': 'demo',  # Legacy category
+                    'type': 'old'
+                })
+        
+        # Add visualization images
+        viz_images = self.quote_data.get('visualization_images', [])
+        for img in viz_images:
+            if img:
+                combined_images.append({
+                    'path': img,
+                    'category': 'visualization',
+                    'type': 'הדמיה'
+                })
+        
+        # Add technical images
+        tech_images = self.quote_data.get('technical_images', [])
+        for img in tech_images:
+            if img:
+                combined_images.append({
+                    'path': img,
+                    'category': 'technical',
+                    'type': 'הדמיית נקודות מים וחשמל'
+                })
+        
+        return combined_images
+
+    def update_image_labels(self):
+        """Update the image path labels (backward compatibility - deprecated)"""
+        # This method is kept for backward compatibility but the UI has been updated
+        # to use the new categorized image system
+        pass 

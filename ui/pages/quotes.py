@@ -508,7 +508,8 @@ class QuotesPage:
                     'שם מוצר': item.get('שם מוצר', item.get('name', 'פריט')),
                     'כמות': item.get('כמות', item.get('quantity', 1)),
                     'מחיר': item.get('מחיר', item.get('price', 0)),
-                    'קטגוריה': item.get('קטגוריה', item.get('category', ''))
+                    'קטגוריה': item.get('קטגוריה', item.get('category', '')),
+                    'יחידה': item.get('יחידה', item.get('unit', 'יח׳'))
                 })
             
             items_df = pd.DataFrame(items_data)
@@ -545,9 +546,45 @@ class QuotesPage:
                 messagebox.showinfo("שמירה בוטלה", "שמירת קובץ ה-PDF בוטלה על ידי המשתמש.")
                 return
             
-            # Generate PDF
-            demo1 = quote.get('images', [])[0] if quote.get('images') and len(quote.get('images', [])) > 0 else None
-            demo2 = quote.get('images', [])[1] if quote.get('images') and len(quote.get('images', [])) > 1 else None
+            # Parse enhanced categorized images from database
+            def parse_images_from_database(images_data):
+                """Parse combined images back into categories"""
+                demo1, demo2 = None, None
+                visualization_images = []
+                technical_images = []
+                
+                if not images_data:
+                    return demo1, demo2, visualization_images, technical_images
+                
+                # Handle both old format (list of strings) and new format (list of dicts)
+                if isinstance(images_data, list):
+                    for i, img in enumerate(images_data):
+                        if isinstance(img, str):
+                            # Old format - string paths
+                            if i == 0:
+                                demo1 = img
+                            elif i == 1:
+                                demo2 = img
+                        elif isinstance(img, dict):
+                            # New format - categorized images
+                            img_path = img.get('path', '')
+                            img_category = img.get('category', '')
+                            
+                            if img_category == 'visualization':
+                                visualization_images.append(img_path)
+                            elif img_category == 'technical':
+                                technical_images.append(img_path)
+                            elif img_category == 'demo':
+                                # Legacy demo images
+                                if demo1 is None:
+                                    demo1 = img_path
+                                elif demo2 is None:
+                                    demo2 = img_path
+                
+                return demo1, demo2, visualization_images, technical_images
+            
+            # Parse images
+            demo1, demo2, visualization_images, technical_images = parse_images_from_database(quote.get('images', []))
             
             success = create_professional_pdf(
                 customer_data=customer_data,
@@ -557,7 +594,9 @@ class QuotesPage:
                 quote_id=quote['id'],
                 save_path=save_path,
                 demo1=demo1,
-                demo2=demo2
+                demo2=demo2,
+                visualization_images=visualization_images,
+                technical_images=technical_images
             )
             
             if success:
@@ -619,7 +658,8 @@ class QuotesPage:
                     'שם מוצר': item.get('שם מוצר', item.get('name', 'פריט')),
                     'כמות': item.get('כמות', item.get('quantity', 1)),
                     'מחיר': item.get('מחיר', item.get('price', 0)),
-                    'קטגוריה': item.get('קטגוריה', item.get('category', ''))
+                    'קטגוריה': item.get('קטגוריה', item.get('category', '')),
+                    'יחידה': item.get('יחידה', item.get('unit', 'יח׳'))
                 }
                 processed_items.append(processed_item)
             
@@ -644,8 +684,46 @@ class QuotesPage:
                 temp_pdf_path = tmpfile.name
             
             settings_manager = SettingsManager()
-            demo1 = quote.get('images', [])[0] if quote.get('images') and len(quote.get('images', [])) > 0 else None
-            demo2 = quote.get('images', [])[1] if quote.get('images') and len(quote.get('images', [])) > 1 else None
+            
+            # Parse enhanced categorized images from database (same function as above)
+            def parse_images_from_database(images_data):
+                """Parse combined images back into categories"""
+                demo1, demo2 = None, None
+                visualization_images = []
+                technical_images = []
+                
+                if not images_data:
+                    return demo1, demo2, visualization_images, technical_images
+                
+                # Handle both old format (list of strings) and new format (list of dicts)
+                if isinstance(images_data, list):
+                    for i, img in enumerate(images_data):
+                        if isinstance(img, str):
+                            # Old format - string paths
+                            if i == 0:
+                                demo1 = img
+                            elif i == 1:
+                                demo2 = img
+                        elif isinstance(img, dict):
+                            # New format - categorized images
+                            img_path = img.get('path', '')
+                            img_category = img.get('category', '')
+                            
+                            if img_category == 'visualization':
+                                visualization_images.append(img_path)
+                            elif img_category == 'technical':
+                                technical_images.append(img_path)
+                            elif img_category == 'demo':
+                                # Legacy demo images
+                                if demo1 is None:
+                                    demo1 = img_path
+                                elif demo2 is None:
+                                    demo2 = img_path
+                
+                return demo1, demo2, visualization_images, technical_images
+            
+            # Parse images
+            demo1, demo2, visualization_images, technical_images = parse_images_from_database(quote.get('images', []))
             
             success = create_professional_pdf(
                 customer_data=customer_data,
@@ -655,7 +733,9 @@ class QuotesPage:
                 settings_manager=settings_manager,
                 quote_id=quote['id'],
                 demo1=demo1,
-                demo2=demo2
+                demo2=demo2,
+                visualization_images=visualization_images,
+                technical_images=technical_images
             )
             
             if success:
