@@ -24,11 +24,46 @@ class DatabaseManager:
         
         # Set database path
         if db_path is None:
-            db_dir = Path(__file__).parent.parent / "config"
-            db_dir.mkdir(exist_ok=True)
+            # Check if running as EXE (bundled by PyInstaller)
+            import sys
+            is_exe = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+            
+            if is_exe:
+                # Always use AppData directory for EXE to ensure persistence
+                import platform, os
+                if platform.system() == "Windows":
+                    appdata = os.getenv('LOCALAPPDATA') or Path.home()
+                    db_dir = Path(appdata) / "KitchenQuoteManager"
+                else:
+                    db_dir = Path.home() / ".kitchen_quote_manager"
+                db_dir.mkdir(exist_ok=True)
+                self.logger.info(f"EXE detected, using persistent AppData directory: {db_dir}")
+            else:
+                # Development mode - try config directory first
+                default_dir = Path(__file__).parent.parent / "config"
+                try:
+                    default_dir.mkdir(exist_ok=True)
+                    test_file = default_dir / "_writetest.tmp"
+                    with open(test_file, "w") as f:
+                        f.write("test")
+                    test_file.unlink(missing_ok=True)
+                    db_dir = default_dir
+                    self.logger.info(f"Development mode, using config directory: {db_dir}")
+                except Exception as e:
+                    # Fallback to user appdata directory (always writable)
+                    import platform, os
+                    if platform.system() == "Windows":
+                        appdata = os.getenv('LOCALAPPDATA') or Path.home()
+                        db_dir = Path(appdata) / "KitchenQuoteManager"
+                    else:
+                        db_dir = Path.home() / ".kitchen_quote_manager"
+                    db_dir.mkdir(exist_ok=True)
+                    self.logger.warning(f"Config directory not writable ({e}), using fallback: {db_dir}")
+            
             db_path = db_dir / "kitchen_quotes.db"
         
         self.db_path = str(db_path)
+        self.logger.info(f"Database path set to: {self.db_path}")
         self.engine = None
         self.Session = None
         
@@ -111,8 +146,8 @@ class DatabaseManager:
             self.logger.error(f"Failed to initialize default settings: {e}")
     
     # User operations
-    def create_user(self, username: str, password_hash: str, role: str, **kwargs) -> User:
-        """Create a new user"""
+    def create_user(self, username: str, password_hash: str, role: str, **kwargs) -> Dict[str, Any]:
+        """Create a new user and return as dict to avoid session binding issues"""
         with self.get_session() as session:
             user = User(
                 username=username,
@@ -123,7 +158,22 @@ class DatabaseManager:
             session.add(user)
             session.flush()
             session.refresh(user)
-            return user
+            
+            # Convert to dict while session is active
+            user_dict = {
+                'id': user.id,
+                'username': user.username,
+                'role': user.role,
+                'max_discount': user.max_discount,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email,
+                'is_active': user.is_active,
+                'created_at': user.created_at,
+                'last_login': user.last_login
+            }
+            
+            return user_dict
     
     def get_user_by_username(self, username: str) -> Optional[User]:
         """Get user by username"""
@@ -154,8 +204,14 @@ class DatabaseManager:
     
     def user_exists(self) -> bool:
         """Check if any users exist in the system"""
-        with self.get_session() as session:
-            return session.query(User).count() > 0
+        try:
+            with self.get_session() as session:
+                user_count = session.query(User).count()
+                self.logger.info(f"User count in database: {user_count}")
+                return user_count > 0
+        except Exception as e:
+            self.logger.error(f"Error checking if users exist: {e}")
+            return False
     
     def update_user_last_login(self, user_id: int) -> bool:
         """Update user's last login timestamp"""
@@ -183,16 +239,50 @@ class DatabaseManager:
             self.logger.error(f"Error updating user status: {e}")
             return False
     
-    def delete_user(self, user_id: int) -> bool:
-        """Delete user (soft delete by setting inactive)"""
+    def delete_user(self, user_id: int, force: bool = False) -> bool:
+        """Delete user.
+        If force=True, attempt permanent deletion (only allowed if no quotes/drafts).
+        Otherwise perform soft delete (set inactive). Returns True on success, False on failure."""
         try:
             with self.get_session() as session:
                 user = session.query(User).filter_by(id=user_id).first()
-                if user:
-                    user.is_active = False
+                if not user:
+                    return False
+
+                # If force deletion requested, ensure user has no dependent records
+                if force:
+                    has_quotes = session.query(Quote).filter_by(created_by=user_id).count() > 0
+                    has_drafts = session.query(Draft).filter_by(created_by=user_id).count() > 0
+                    if has_quotes or has_drafts:
+                        # Cannot hard delete if dependencies exist
+                        self.logger.warning(
+                            f"Cannot permanently delete user {user.username}: related quotes or drafts exist"
+                        )
+                        return False
+                    # Safe to delete permanently
+                    session.delete(user)
                     session.commit()
+                    # Audit log
+                    self.log_action(
+                        user_id=0,
+                        action='delete_user',
+                        entity_type='user',
+                        entity_id=user_id,
+                        details={'permanent': True}
+                    )
                     return True
-                return False
+
+                # Soft delete fallback
+                user.is_active = False
+                # Audit log
+                self.log_action(
+                    user_id=0,
+                    action='deactivate_user',
+                    entity_type='user',
+                    entity_id=user_id,
+                    details={'permanent': False}
+                )
+                return True
         except Exception as e:
             self.logger.error(f"Error deleting user: {e}")
             return False
@@ -423,7 +513,9 @@ class DatabaseManager:
                 'contractor_discount_amount': quote.contractor_discount_amount,
                 'vat_amount': quote.vat_amount,
                 'total_amount': quote.total_amount,
+                'images': quote.images,
                 'notes': quote.notes,
+                'pdf_path': quote.pdf_path,
                 'created_at': quote.created_at
             }
             

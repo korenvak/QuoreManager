@@ -30,8 +30,24 @@ class LoginWindow:
         """Setup the login window"""
         self.window = ctk.CTk()
         self.window.title("מערכת ניהול הצעות מטבח - כניסה")
-        self.window.geometry("400x500")
-        self.window.resizable(False, False)
+        
+        # Make window responsive to screen size
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calculate appropriate window size
+        window_width = min(400, int(screen_width * 0.4))
+        window_height = min(550, int(screen_height * 0.7))
+        
+        # Ensure minimum sizes
+        window_width = max(350, window_width)
+        window_height = max(500, window_height)
+        
+        self.window.geometry(f"{window_width}x{window_height}")
+        self.window.resizable(True, True)  # Allow resizing
+        
+        # Set minimum window size
+        self.window.minsize(350, 500)
         
         # Center window on screen
         self.center_window()

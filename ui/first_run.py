@@ -23,8 +23,24 @@ class FirstRunSetup:
         """Setup the first run window"""
         self.window = ctk.CTk()
         self.window.title("הגדרה ראשונית - מערכת ניהול הצעות מטבח")
-        self.window.geometry("500x600")
-        self.window.resizable(False, False)
+        
+        # Make window responsive to screen size
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        
+        # Calculate appropriate window size (80% of screen, with limits)
+        window_width = min(500, int(screen_width * 0.8))
+        window_height = min(700, int(screen_height * 0.85))
+        
+        # Ensure minimum sizes for usability
+        window_width = max(400, window_width)
+        window_height = max(550, window_height)
+        
+        self.window.geometry(f"{window_width}x{window_height}")
+        self.window.resizable(True, True)  # Allow resizing
+        
+        # Set minimum window size
+        self.window.minsize(400, 550)
         
         # Center window
         self.center_window()
@@ -58,8 +74,8 @@ class FirstRunSetup:
     
     def create_ui(self):
         """Create user interface"""
-        # Main container with white background
-        main_frame = ctk.CTkFrame(self.window, corner_radius=0, fg_color="#FFFFFF")
+        # Main scrollable container for small screens
+        main_frame = ctk.CTkScrollableFrame(self.window, corner_radius=0, fg_color="#FFFFFF")
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Header

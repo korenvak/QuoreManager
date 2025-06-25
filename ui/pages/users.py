@@ -336,14 +336,24 @@ class UsersPage:
                 messagebox.showerror("שגיאה", "שגיאה בשינוי סטטוס המשתמש")
 
     def delete_user(self, user):
-        """Delete user (soft delete)"""
-        if messagebox.askyesno("מחיקת משתמש", f"האם אתה בטוח שברצונך למחוק את המשתמש {user.get('username', '')}?"):
-            success = self.db_manager.delete_user(user['id'])
+        """Delete user - permanently if possible, else deactivate"""
+        username = user.get('username', '')
+        if not messagebox.askyesno("מחיקת משתמש", f"האם אתה בטוח שברצונך למחוק לצמיתות את המשתמש {username}?"):
+            return
+        # Attempt permanent delete first
+        success = self.db_manager.delete_user(user['id'], force=True)
+        if success:
+            messagebox.showinfo("הצלחה", "המשתמש נמחק לצמיתות")
+            self.load_users()
+            return
+        # Fallback: deactivate
+        if messagebox.askyesno("לא ניתן למחוק", "למשתמש יש הצעות או טיוטות קיימות. האם להפוך אותו ללא פעיל במקום?"):
+            success = self.db_manager.update_user_status(user['id'], False)
             if success:
-                messagebox.showinfo("הצלחה", "המשתמש נמחק בהצלחה")
+                messagebox.showinfo("עודכן", "המשתמש הוגדר כלא פעיל")
                 self.load_users()
             else:
-                messagebox.showerror("שגיאה", "שגיאה במחיקת המשתמש")
+                messagebox.showerror("שגיאה", "שגיאה בעדכון סטטוס המשתמש")
 
 
 class UserDialog:
@@ -373,8 +383,24 @@ class UserDialog:
         """Create user dialog"""
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title(self.title)
-        self.dialog.geometry("500x700")
-        self.dialog.resizable(False, False)
+        
+        # Make dialog responsive to screen size
+        screen_width = self.dialog.winfo_screenwidth()
+        screen_height = self.dialog.winfo_screenheight()
+        
+        # Calculate appropriate dialog size (35% of screen width, 85% of height)
+        dialog_width = min(500, int(screen_width * 0.35))
+        dialog_height = min(700, int(screen_height * 0.85))
+        
+        # Ensure minimum sizes
+        dialog_width = max(450, dialog_width)
+        dialog_height = max(600, dialog_height)
+        
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}")
+        self.dialog.resizable(True, True)  # Allow resizing
+        
+        # Set minimum window size
+        self.dialog.minsize(450, 600)
         
         # Center dialog
         self.dialog.transient(self.parent)

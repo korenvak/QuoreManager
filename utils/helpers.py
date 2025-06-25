@@ -80,9 +80,10 @@ def validate_phone(phone: str) -> bool:
     
     # Israeli phone patterns
     patterns = [
-        r'^972\d{9}$',     # International format
-        r'^0[2-9]\d{8}$',  # Local format
-        r'^[2-9]\d{8}$'    # Without leading zero
+        r'^972[5-9]\d{8}$',    # International format: 972-5X-XXXXXXX (mobile) or 972-X-XXXXXXXX (landline)
+        r'^05[0-9]\d{7}$',     # Mobile format: 05X-XXXXXXX (10 digits total)
+        r'^0[2-489]\d{7}$',    # Landline format: 0X-XXXXXXX (9 digits total, excluding mobile prefixes)
+        r'^[5-9]\d{8}$'        # Without leading zero (mobile or landline)
     ]
     
     return any(re.match(pattern, digits_only) for pattern in patterns)
@@ -92,17 +93,25 @@ def normalize_phone(phone: str) -> str:
     # Remove all non-digit characters
     digits_only = re.sub(r'\D', '', phone)
     
-    # Convert to local format (0X-XXXXXXX)
+    # Convert to local format
     if digits_only.startswith('972'):
         # International format
         local_part = digits_only[3:]
-        if len(local_part) == 9:
+        if len(local_part) == 9:  # Mobile: 972-5X-XXXXXXX
+            return f"0{local_part[:3]}-{local_part[3:]}"
+        elif len(local_part) == 8:  # Landline: 972-X-XXXXXXX  
             return f"0{local_part[:2]}-{local_part[2:]}"
-    elif digits_only.startswith('0') and len(digits_only) == 10:
-        # Already in local format
+    elif digits_only.startswith('05') and len(digits_only) == 10:
+        # Mobile format: 05X-XXXXXXX (10 digits)
         return f"{digits_only[:3]}-{digits_only[3:]}"
-    elif len(digits_only) == 9:
-        # Without leading zero
+    elif digits_only.startswith('0') and len(digits_only) == 9:
+        # Landline format: 0X-XXXXXXX (9 digits)
+        return f"{digits_only[:3]}-{digits_only[3:]}"
+    elif digits_only.startswith('5') and len(digits_only) == 9:
+        # Mobile without leading zero: 5X-XXXXXXX
+        return f"0{digits_only[:2]}-{digits_only[2:]}"
+    elif len(digits_only) == 8:
+        # Landline without leading zero
         return f"0{digits_only[:2]}-{digits_only[2:]}"
     
     # Return as-is if no pattern matches

@@ -520,8 +520,24 @@ class CustomerDialog:
         """Create customer dialog"""
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title(self.title)
-        self.dialog.geometry("600x700")
-        self.dialog.resizable(False, False)
+        
+        # Make dialog responsive to screen size
+        screen_width = self.dialog.winfo_screenwidth()
+        screen_height = self.dialog.winfo_screenheight()
+        
+        # Calculate appropriate dialog size (40% of screen width, 85% of height)
+        dialog_width = min(600, int(screen_width * 0.4))
+        dialog_height = min(700, int(screen_height * 0.85))
+        
+        # Ensure minimum sizes
+        dialog_width = max(500, dialog_width)
+        dialog_height = max(600, dialog_height)
+        
+        self.dialog.geometry(f"{dialog_width}x{dialog_height}")
+        self.dialog.resizable(True, True)  # Allow resizing
+        
+        # Set minimum window size
+        self.dialog.minsize(500, 600)
         
         # Center dialog
         self.dialog.transient(self.parent)
@@ -801,11 +817,17 @@ class CustomerDialog:
         digits_only = re.sub(r'[^\d]', '', phone)
         
         # Check for valid Israeli phone patterns
-        if len(digits_only) == 9 and digits_only.startswith('0'):
+        # Mobile numbers: 05X-XXXXXXX (10 digits total)
+        if len(digits_only) == 10 and digits_only.startswith('05'):
             return True
-        if len(digits_only) == 10 and digits_only.startswith('9720'):
+        # Landline numbers: 0X-XXXXXXX (9 digits total)
+        if len(digits_only) == 9 and digits_only.startswith('0') and not digits_only.startswith('05'):
             return True
-        if len(digits_only) == 12 and digits_only.startswith('9720'):
+        # International format: +972-5X-XXXXXXX (remove +972)
+        if len(digits_only) == 13 and digits_only.startswith('9725'):
+            return True
+        # International format without country code: 5X-XXXXXXX
+        if len(digits_only) == 9 and digits_only.startswith('5'):
             return True
         
         return False

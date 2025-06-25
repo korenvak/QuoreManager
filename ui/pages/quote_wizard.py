@@ -76,9 +76,12 @@ class QuoteWizard:
         screen_width = self.dialog.winfo_screenwidth()
         screen_height = self.dialog.winfo_screenheight()
         
-        # Use 90% of screen size but with minimum sizes
-        window_width = max(1400, int(screen_width * 0.9))
-        window_height = max(900, int(screen_height * 0.9))
+        # Use 90% of screen size but with min and max limits
+        window_width = min(1400, int(screen_width * 0.9))
+        window_height = min(900, int(screen_height * 0.9))
+        # Ensure minimum usability sizes
+        window_width = max(1000, window_width)
+        window_height = max(700, window_height)
         
         self.dialog.geometry(f"{window_width}x{window_height}")
         self.dialog.resizable(True, True)

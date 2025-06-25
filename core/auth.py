@@ -58,21 +58,21 @@ class AuthManager:
                 **kwargs
             }
             
-            user = self.db_manager.create_user(**user_data)
+            user_dict = self.db_manager.create_user(**user_data)
             
-            # Log the action
+            # Log the action - user_dict already contains the id
             self.db_manager.log_action(
-                user_id=user.id,
+                user_id=user_dict['id'],
                 action='create_admin_user',
                 entity_type='user',
-                entity_id=user.id,
+                entity_id=user_dict['id'],
                 details={'username': username}
             )
             
             self.logger.info(f"Admin user created: {username}")
             
-            # Return user dict for session
-            return self._user_to_dict(user)
+            # Return user dict for session (already a dict)
+            return user_dict
             
         except Exception as e:
             self.logger.error(f"Failed to create admin user: {e}")

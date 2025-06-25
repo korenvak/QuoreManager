@@ -30,6 +30,13 @@ try:
     from config.settings import SettingsManager
     from utils.logger import setup_logging
     
+    # Enable DPI awareness on Windows
+    try:
+        from ctypes import windll
+        windll.shcore.SetProcessDpiAwareness(1)
+    except:
+        pass  # DPI awareness not available on this system
+    
 except ImportError as e:
     import logging
     logging.basicConfig(level=logging.ERROR)

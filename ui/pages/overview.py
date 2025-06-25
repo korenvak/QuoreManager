@@ -422,13 +422,33 @@ class OverviewPage:
         logging.getLogger(__name__).error(f"Activity loading error: {error}")
     
     def new_quote_action(self):
-        """Handle new quote action"""
-        messagebox.showinfo("פעולה", "יצירת הצעת מחיר חדשה - בפיתוח")
-    
+        """Handle new quote action - open Quote Wizard"""
+        from ui.pages.quote_wizard import QuoteWizard
+        wizard = QuoteWizard(
+            parent=self.parent.winfo_toplevel(),
+            db_manager=self.db_manager,
+            current_user=self.current_user,
+            on_success=lambda: messagebox.showinfo("הצלחה", "הצעת מחיר נוצרה")
+        )
+
     def new_customer_action(self):
-        """Handle new customer action"""
-        messagebox.showinfo("פעולה", "הוספת לקוח חדש - בפיתוח")
-    
+        """Handle new customer action - open Customer dialog"""
+        from ui.pages.customers import CustomerDialog
+        dialog = CustomerDialog(
+            parent=self.parent.winfo_toplevel(),
+            title="הוסף לקוח חדש",
+            customer_data=None,
+            db_manager=self.db_manager,
+            on_success=lambda: messagebox.showinfo("הצלחה", "לקוח נוצר בהצלחה")
+        )
+
     def view_catalog_action(self):
-        """Handle view catalog action"""
-        messagebox.showinfo("פעולה", "עיון בקטלוג - בפיתוח") 
+        """Navigate to catalog page in dashboard"""
+        root = self.parent.winfo_toplevel()
+        if hasattr(root, 'show_catalog_page'):
+            try:
+                root.show_catalog_page()
+            except Exception as e:
+                messagebox.showerror("שגיאה", f"שגיאה בפתיחת הקטלוג: {e}")
+        else:
+            messagebox.showinfo("פעולה", "לא ניתן לפתוח קטלוג" ) 
