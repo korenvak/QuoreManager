@@ -2514,8 +2514,17 @@ class QuoteWizard:
     def edit_existing_quote(self, quote_data):
         """Load wizard for editing an existing quote"""
         try:
+            # Handle both Quote objects and dictionaries
+            def safe_get(data, key, default=None):
+                """Safely get value from either dict or object"""
+                if isinstance(data, dict):
+                    return data.get(key, default)
+                else:
+                    # Handle SQLAlchemy object
+                    return getattr(data, key, default)
+            
             # Check if user has permission to edit this quote with its current discounts
-            existing_regular_discount = quote_data.get('regular_discount', 0)
+            existing_regular_discount = safe_get(quote_data, 'regular_discount', 0)
             user_max_discount = self.current_user.get('max_discount', 0.0)
             user_role = self.current_user.get('role', 'viewer')
             has_unlimited_discount = user_role in ['admin', 'manager']
@@ -2532,21 +2541,21 @@ class QuoteWizard:
             # Set a flag to prevent calculate_totals from overwriting values during UI creation
             self._editing_quote = True
             
-            # Populate quote data
+            # Populate quote data using safe_get
             self.quote_data.update({
-                'customer_id': quote_data.get('customer_id'),
+                'customer_id': safe_get(quote_data, 'customer_id'),
                 'customer_data': None,  # Will be loaded in customer selection step
-                'regular_discount': quote_data.get('regular_discount', 0),
-                'contractor_discount': quote_data.get('contractor_discount', 0),
-                'vat_rate': quote_data.get('vat_rate', 17),
-                'notes': quote_data.get('notes', ''),
-                'images': quote_data.get('images', []),
-                'quote_id': quote_data.get('id')  # Store original quote ID for updating
+                'regular_discount': safe_get(quote_data, 'regular_discount', 0),
+                'contractor_discount': safe_get(quote_data, 'contractor_discount', 0),
+                'vat_rate': safe_get(quote_data, 'vat_rate', 17),
+                'notes': safe_get(quote_data, 'notes', ''),
+                'images': safe_get(quote_data, 'images', []),
+                'quote_id': safe_get(quote_data, 'id')  # Store original quote ID for updating
             })
 
             
             # Convert items to expected format with both key sets
-            items = quote_data.get('items', [])
+            items = safe_get(quote_data, 'items', [])
             if isinstance(items, str):
                 import json
                 items = json.loads(items)
@@ -2573,7 +2582,7 @@ class QuoteWizard:
             
             # Load customer data for the quote
             try:
-                customer = self.db_manager.get_customer_by_id(quote_data.get('customer_id'))
+                customer = self.db_manager.get_customer_by_id(safe_get(quote_data, 'customer_id'))
                 if customer:
                     # Convert datetime objects to strings for JSON serialization
                     customer_data = customer.copy()
