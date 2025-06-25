@@ -431,23 +431,48 @@ class QuoteWizard:
     
     def display_customers(self, customers):
         """Display customers in selectable list"""
-        # Clear existing
-        for widget in self.customers_container.winfo_children():
-            widget.destroy()
+        # Safety check - ensure container still exists
+        if not hasattr(self, 'customers_container') or self.customers_container is None:
+            print("Warning: customers_container is None, skipping display")
+            return
+        
+        try:
+            # Check if container widget still exists
+            if not self.customers_container.winfo_exists():
+                print("Warning: customers_container no longer exists, skipping display")
+                return
+        except Exception as e:
+            print(f"Warning: Error checking customers_container existence: {e}")
+            return
+        
+        # Clear existing - with additional safety
+        try:
+            for widget in self.customers_container.winfo_children():
+                widget.destroy()
+        except Exception as e:
+            print(f"Warning: Error clearing customers_container: {e}")
+            return
         
         if not customers:
-            no_customers_label = ctk.CTkLabel(
-                self.customers_container,
-                text="אין לקוחות במערכת\nלחץ על 'לקוח חדש' ליצירת לקוח ראשון",
-                font=ctk.CTkFont(family="Heebo", size=16),
-                justify="center"
-            )
-            no_customers_label.pack(expand=True, pady=50)
+            try:
+                no_customers_label = ctk.CTkLabel(
+                    self.customers_container,
+                    text="אין לקוחות במערכת\nלחץ על 'לקוח חדש' ליצירת לקוח ראשון",
+                    font=ctk.CTkFont(family="Heebo", size=16),
+                    justify="center"
+                )
+                no_customers_label.pack(expand=True, pady=50)
+            except Exception as e:
+                print(f"Warning: Error creating no customers label: {e}")
             return
         
         # Display customers as selectable cards
         for customer in customers:
-            self.create_customer_card(customer)
+            try:
+                self.create_customer_card(customer)
+            except Exception as e:
+                print(f"Warning: Error creating customer card for {customer.get('name', 'Unknown')}: {e}")
+                continue
     
     def create_customer_card(self, customer):
         """Create selectable customer card"""
@@ -567,17 +592,34 @@ class QuoteWizard:
     
     def show_customer_error(self, error):
         """Show customer loading error"""
-        for widget in self.customers_container.winfo_children():
-            widget.destroy()
+        # Safety check - ensure container still exists
+        if not hasattr(self, 'customers_container') or self.customers_container is None:
+            print(f"Warning: customers_container is None, cannot show error: {error}")
+            return
         
-        error_label = ctk.CTkLabel(
-            self.customers_container,
-            text=f"שגיאה בטעינת לקוחות:\n{error}",
-            font=ctk.CTkFont(family="Heebo", size=16),
-            text_color="red",
-            justify="center"
-        )
-        error_label.pack(expand=True, pady=50)
+        try:
+            # Check if container widget still exists
+            if not self.customers_container.winfo_exists():
+                print(f"Warning: customers_container no longer exists, cannot show error: {error}")
+                return
+        except Exception as e:
+            print(f"Warning: Error checking customers_container existence: {e}")
+            return
+        
+        try:
+            for widget in self.customers_container.winfo_children():
+                widget.destroy()
+            
+            error_label = ctk.CTkLabel(
+                self.customers_container,
+                text=f"שגיאה בטעינת לקוחות:\n{error}",
+                font=ctk.CTkFont(family="Heebo", size=16),
+                text_color="red",
+                justify="center"
+            )
+            error_label.pack(expand=True, pady=50)
+        except Exception as e:
+            print(f"Warning: Error showing customer error: {e}")
     
     def show_items_selection(self):
         """Show item selection step with side-by-side catalog and cart layout"""
