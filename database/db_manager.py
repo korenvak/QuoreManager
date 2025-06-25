@@ -439,7 +439,7 @@ class DatabaseManager:
             if not user:
                 raise ValueError("Invalid creator user ID")
 
-            has_unlimited_discount = user.role in ["admin", "manager"] or user.max_discount >= 100.0
+            has_unlimited_discount = user.role == "admin" or user.max_discount >= 100.0
 
             if not has_unlimited_discount and requested_discount > (user.max_discount or 0.0):
                 raise ValueError(
@@ -690,19 +690,23 @@ class DatabaseManager:
                 if not user or not quote:
                     return False
                 
-                # Admin and manager can edit any quote
-                if user.role in ['admin', 'manager']:
+                # Admin can edit any quote
+                if user.role == 'admin':
                     return True
                 
-                # Employee can edit any quote that doesn't exceed their discount limit
-                if user.role == 'employee':
+                # Regular users can edit quotes they created that don't exceed their discount limit
+                if user.role == 'user':
+                    # Check if user created this quote
+                    if quote.created_by != user_id:
+                        return False
+                        
                     # Check if the quote's discount exceeds user's max discount
                     quote_discount = quote.regular_discount or 0
                     user_max_discount = user.max_discount or 0
                     
                     if quote_discount > user_max_discount:
                         self.logger.warning(
-                            f"Employee {user_id} (max_discount={user_max_discount}%) attempted to edit quote {quote_id} "
+                            f"User {user_id} (max_discount={user_max_discount}%) attempted to edit quote {quote_id} "
                             f"with discount {quote_discount}% - permission denied"
                         )
                         return False
@@ -1008,4 +1012,36 @@ class DatabaseManager:
             quote = session.query(Quote).filter_by(id=quote_id).first()
             if quote:
                 return self._quote_to_dict(quote)
-            return None 
+            return None
+    
+    def get_quotes(self, user_id: int = None, user_role: str = None) -> List[Dict]:
+        """Get all quotes with user visibility controls"""
+        with self.get_session() as session:
+            query = session.query(Quote)
+            
+            # Apply user visibility filters for non-admin users
+            if user_role != 'admin' and user_id is not None:
+                # Regular users can only see their own quotes
+                query = query.filter(Quote.created_by == user_id)
+            
+            quotes = query.order_by(Quote.created_at.desc()).all()
+            
+            result = []
+            for quote in quotes:
+                quote_dict = self._quote_to_dict(quote)
+                result.append(quote_dict)
+            
+            return result
+    
+    def get_drafts(self, user_id: int = None, user_role: str = None) -> List[Draft]:
+        """Get all drafts with user visibility controls"""
+        with self.get_session() as session:
+            query = session.query(Draft)
+            
+            # Apply user visibility filters for non-admin users
+            if user_role != 'admin' and user_id is not None:
+                # Regular users can only see their own drafts
+                query = query.filter(Draft.created_by == user_id)
+            
+            drafts = query.order_by(Draft.created_at.desc()).all()
+            return drafts 

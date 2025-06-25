@@ -2251,8 +2251,8 @@ class QuoteWizard:
                 if catalog_item and catalog_item.get('דורש אישור', False):
                     approval_required_items.append(item_name)
             
-            # If there are items requiring approval and user is not admin/manager, force save as draft
-            if approval_required_items and user_role not in ['admin', 'manager']:
+            # If there are items requiring approval and user is not admin, force save as draft
+            if approval_required_items and user_role != 'admin':
                 items_list = '\n• '.join(approval_required_items)
                 result = messagebox.askquestion(
                     "פריטים דורשים אישור",
@@ -2270,7 +2270,7 @@ class QuoteWizard:
             # Enforce discount permission check right before saving
             regular_discount = self.quote_data.get('regular_discount', 0)
             user_max_discount = self.current_user.get('max_discount', 0.0)
-            has_unlimited_discount = user_role in ['admin', 'manager']
+            has_unlimited_discount = user_role == 'admin'
             if not has_unlimited_discount and regular_discount > user_max_discount:
                 messagebox.showerror(
                     "שגיאה בהרשאות", 

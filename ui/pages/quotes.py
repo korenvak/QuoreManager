@@ -266,16 +266,12 @@ class QuotesPage:
         """Load quotes data in background"""
         def load_data():
             try:
-                # Get quotes based on user role
-                current_user_role = self.current_user.get('role', 'viewer')
+                # Get quotes based on user role - simplified for Version 2.0
+                current_user_role = self.current_user.get('role', 'user')
                 current_user_id = self.current_user.get('id')
                 
-                if current_user_role in ['admin', 'manager', 'employee']:
-                    # Admin, manager, and employee see all quotes
-                    quotes = self.db_manager.get_all_quotes()
-                else:
-                    # Viewer sees only their own quotes
-                    quotes = self.db_manager.get_quotes_by_creator(current_user_id)
+                # Use new visibility-controlled method
+                quotes = self.db_manager.get_quotes(user_id=current_user_id, user_role=current_user_role)
                 
                 # Process quotes data
                 processed_quotes = []

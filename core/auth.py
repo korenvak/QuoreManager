@@ -214,7 +214,7 @@ class AuthManager:
             return False
     
     def get_role_permissions(self, role: str) -> Dict[str, bool]:
-        """Get permissions for a role"""
+        """Get permissions for a role - Simplified for Version 2.0 (admin/user only)"""
         permissions = {
             'admin': {
                 'create_quotes': True,
@@ -225,44 +225,27 @@ class AuthManager:
                 'manage_catalog': True,
                 'unlimited_discount': True,
                 'view_all_quotes': True,
-                'system_settings': True
+                'view_all_drafts': True,
+                'system_settings': True,
+                'approve_restricted_items': True
             },
-            'manager': {
+            'user': {
                 'create_quotes': True,
-                'edit_quotes': True,
-                'delete_quotes': True,
-                'manage_customers': True,
-                'manage_users': False,
-                'manage_catalog': False,
-                'unlimited_discount': True,
-                'view_all_quotes': True,
-                'system_settings': False
-            },
-            'employee': {
-                'create_quotes': True,
-                'edit_quotes': True,
-                'delete_quotes': False,
+                'edit_quotes': True,  # Can edit their own quotes
+                'delete_quotes': False,  # Cannot delete quotes
                 'manage_customers': True,
                 'manage_users': False,
                 'manage_catalog': False,
                 'unlimited_discount': False,
-                'view_all_quotes': False,
-                'system_settings': False
-            },
-            'viewer': {
-                'create_quotes': False,
-                'edit_quotes': False,
-                'delete_quotes': False,
-                'manage_customers': False,
-                'manage_users': False,
-                'manage_catalog': False,
-                'unlimited_discount': False,
-                'view_all_quotes': True,
-                'system_settings': False
+                'view_all_quotes': False,  # Can only see own quotes
+                'view_all_drafts': False,  # Can only see own drafts
+                'system_settings': False,
+                'approve_restricted_items': False
             }
         }
         
-        return permissions.get(role, permissions['viewer'])
+        # Default to 'user' permissions for unknown roles
+        return permissions.get(role, permissions['user'])
     
     def has_permission(self, user: Dict[str, Any], permission: str) -> bool:
         """Check if user has specific permission"""
