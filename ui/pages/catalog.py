@@ -21,123 +21,168 @@ class CatalogPage:
         self.stats_label: Optional[ctk.CTkLabel] = None
         
     def create_content(self):
-        """Create catalog page content"""
-        # Main container with clean white background
+        """Create modern professional catalog page content with responsive design"""
+        # Clear existing content
+        for widget in self.parent.winfo_children():
+            widget.destroy()
+        
+        # Initialize theme system for professional styling
+        from styling.theme_system import ModernThemeManager
+        from config.settings import SettingsManager
+        settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(settings_manager)
+        self.theme = self.theme_manager.get_current_theme()
+        
+        # Professional main container with modern gradient background
         main_frame = ctk.CTkScrollableFrame(
             self.parent,
-            fg_color="#FFFFFF",
-            corner_radius=0
+            fg_color=self.theme['bg_secondary'],
+            corner_radius=0,
+            scrollbar_button_color=self.theme['primary_light'],
+            scrollbar_button_hover_color=self.theme['primary']
         )
         main_frame.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Inner container with padding
-        content_frame = ctk.CTkFrame(
-            main_frame,
-            fg_color="transparent"
+        # Professional inner container with proper spacing
+        inner_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        inner_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Modern professional page header
+        self.create_modern_header(inner_frame)
+        
+        # Professional search and filter bar
+        self.create_modern_search_bar(inner_frame)
+        
+        # Modern catalog container with professional card design
+        catalog_content_frame = self.theme_manager.create_modern_card(
+            inner_frame,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_color=self.theme['border_light']
         )
-        content_frame.pack(fill="both", expand=True, padx=30, pady=30)
+        catalog_content_frame.pack(fill="both", expand=True)
         
-        # Header
-        self.create_header(content_frame)
+        # Create scrollable catalog container inside the card
+        self.catalog_container = ctk.CTkScrollableFrame(
+            catalog_content_frame,
+            fg_color="transparent",
+            corner_radius=0
+        )
+        self.catalog_container.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('lg'))
         
-        # Content area
-        self.create_content_area(content_frame)
-        
-        # Load existing catalog
+        # Load catalog data with modern loading state
         self.load_catalog()
     
-    def create_header(self, parent):
-        """Create header with title and actions"""
-        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 20))
+    def create_modern_header(self, parent):
+        """Create modern professional page header"""
+        header_card = self.theme_manager.create_modern_card(
+            parent,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_color=self.theme['border_light']
+        )
+        header_card.pack(fill="x", pady=(0, self.theme_manager.get_spacing('xl')))
         
-        # Title
+        header_frame = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Professional title with modern typography
         title_label = ctk.CTkLabel(
             header_frame,
-            text="ניהול קטלוג",
-            font=ctk.CTkFont(family="Assistant", size=32, weight="bold"),
-            text_color="#1F2937",
+            text="קטלוג מוצרים",
+            font=self.theme_manager.create_ctk_font('title'),
+            text_color=self.theme['text_primary'],
             anchor="e"
         )
-        title_label.pack(anchor="e", pady=(0, 15))
+        title_label.pack(anchor="e")
         
-        # Actions bar
-        actions_frame = ctk.CTkFrame(
+        # Professional subtitle with theme colors
+        subtitle_label = ctk.CTkLabel(
             header_frame,
-            fg_color="#FAFBFF",
-            corner_radius=15,
-            border_width=1,
-            border_color="#E1E8F7"
+            text="עיין וחפש במוצרים זמינים ליצירת הצעות מחיר",
+            font=self.theme_manager.create_ctk_font('body'),
+            text_color=self.theme['text_muted'],
+            anchor="e"
         )
-        actions_frame.pack(fill="x", pady=(0, 10))
-        
-        # Import button
-        import_button = ctk.CTkButton(
-            actions_frame,
-            text="טען קטלוג חדש",
-            font=ctk.CTkFont(family="Assistant", size=15, weight="bold"),
-            height=40,
-            fg_color="#3B82F6",
-            hover_color="#1E40AF",
-            corner_radius=12,
-            command=self.import_catalog
-        )
-        import_button.pack(side="right", padx=20, pady=15)
-        
-        # Template button
-        template_button = ctk.CTkButton(
-            actions_frame,
-            text="הורד תבנית",
-            font=ctk.CTkFont(family="Assistant", size=15, weight="bold"),
-            height=40,
-            fg_color="#6B7280",
-            hover_color="#4B5563",
-            corner_radius=12,
-            command=self.download_template
-        )
-        template_button.pack(side="right", padx=(0, 10), pady=15)
-        
-        # Refresh button
-        refresh_button = ctk.CTkButton(
-            actions_frame,
-            text="רענן",
-            font=ctk.CTkFont(family="Assistant", size=15, weight="bold"),
-            height=40,
-            fg_color="#6B7280",
-            hover_color="#4B5563",
-            corner_radius=12,
-            command=self.load_catalog
-        )
-        refresh_button.pack(side="right", padx=(0, 10), pady=15)
-        
-        # Statistics
-        self.stats_label = ctk.CTkLabel(
-            actions_frame,
-            text="טוען נתונים...",
-            font=ctk.CTkFont(family="Assistant", size=14),
-            text_color="#6B7280"
-        )
-        self.stats_label.pack(side="left", padx=20, pady=15)
+        subtitle_label.pack(anchor="e", pady=(self.theme_manager.get_spacing('xs'), 0))
     
-    def create_content_area(self, parent):
-        """Create scrollable content area for catalog items"""
-        self.catalog_container = ctk.CTkScrollableFrame(
+    def create_modern_search_bar(self, parent):
+        """Create modern professional search and filter bar"""
+        search_card = self.theme_manager.create_modern_card(
             parent,
-            fg_color="#FAFBFF",
-            corner_radius=20,
-            border_width=1,
-            border_color="#E1E8F7"
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_color=self.theme['border_light']
         )
-        self.catalog_container.pack(fill="both", expand=True)
+        search_card.pack(fill="x", pady=(0, self.theme_manager.get_spacing('xl')))
         
-        # Loading placeholder
-        loading_label = ctk.CTkLabel(
-            self.catalog_container,
-            text="טוען קטלוג...",
-            font=ctk.CTkFont(family="Heebo", size=16),
-            text_color="gray"
+        search_frame = ctk.CTkFrame(search_card, fg_color="transparent")
+        search_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
+        
+        # Professional reload button
+        reload_btn = self.theme_manager.create_modern_button(
+            search_frame,
+            text="🔄 רענן קטלוג",
+            style="primary",
+            command=self.reload_catalog
         )
-        loading_label.pack(expand=True, pady=50)
+        reload_btn.pack(side="right")
+        
+        # Professional search container
+        search_container = ctk.CTkFrame(search_frame, fg_color="transparent")
+        search_container.pack(side="right", padx=(0, self.theme_manager.get_spacing('md')))
+        
+        # Modern search entry with professional styling
+        self.search_entry = ctk.CTkEntry(
+            search_container,
+            placeholder_text="חפש מוצר...",
+            font=self.theme_manager.create_ctk_font('body'),
+            width=300,
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=self.theme['border_light'],
+            fg_color=self.theme['input_bg'],
+            text_color=self.theme['text_primary']
+        )
+        self.search_entry.pack(side="right", padx=(0, self.theme_manager.get_spacing('sm')))
+        self.search_entry.bind("<KeyRelease>", self.filter_catalog)
+        
+        # Professional search button
+        search_btn = self.theme_manager.create_modern_button(
+            search_container,
+            text="🔍",
+            style="secondary",
+            size="medium",
+            width=40,
+            command=self.apply_filters
+        )
+        search_btn.pack(side="right")
+        
+        # Professional filter section
+        filter_container = ctk.CTkFrame(search_frame, fg_color="transparent")
+        filter_container.pack(side="right", padx=(0, self.theme_manager.get_spacing('lg')))
+        
+        # Category filter with modern styling
+        filter_label = ctk.CTkLabel(
+            filter_container,
+            text="קטגוריה:",
+            font=self.theme_manager.create_ctk_font('body'),
+            text_color=self.theme['text_secondary']
+        )
+        filter_label.pack(side="right", padx=(self.theme_manager.get_spacing('sm'), 0))
+        
+        self.category_filter = ctk.CTkOptionMenu(
+            filter_container,
+            values=["הכל", "כיורים", "ארונות", "משטחים", "ברזים", "אביזרים"],
+            font=self.theme_manager.create_ctk_font('body'),
+            fg_color=self.theme['input_bg'],
+            button_color=self.theme['primary'],
+            button_hover_color=self.theme['primary_hover'],
+            corner_radius=8,
+            command=self.filter_catalog
+        )
+        self.category_filter.pack(side="right")
     
     def load_catalog(self):
         """Load catalog from Excel handler"""
@@ -341,10 +386,7 @@ class CatalogPage:
         button_frame.pack(fill="x", pady=(10, 0))
         
         # Use theme manager for modern button
-        from styling.theme_system import ModernThemeManager
-        from config.settings import SettingsManager
-        settings_manager = SettingsManager()
-        theme_manager = ModernThemeManager(settings_manager)
+        theme_manager = ModernThemeManager(SettingsManager())
         
         add_button = theme_manager.create_modern_button(
             button_frame,
@@ -480,4 +522,17 @@ class CatalogPage:
             total_items = len(self.catalog_items)
             self.stats_label.configure(
                 text=f"{total_items} פריטים • {categories} קטגוריות"
-            ) 
+            )
+    
+    def reload_catalog(self):
+        """Reload catalog data"""
+        self.load_catalog()
+    
+    def filter_catalog(self, *args):
+        """Filter catalog based on search and category"""
+        # This method filters the displayed catalog items
+        self.load_catalog()  # For now, just reload - can be enhanced later
+    
+    def apply_filters(self):
+        """Apply current filters to catalog"""
+        self.filter_catalog() 

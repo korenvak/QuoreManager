@@ -68,80 +68,162 @@ class QuoteWizard:
         self.create_wizard()
     
     def create_wizard(self):
-        """Create wizard dialog"""
+        """Create wizard dialog with professional modern design and responsive layout"""
         self.dialog = ctk.CTkToplevel(self.parent)
-        self.dialog.title("אשף יצירת הצעת מחיר")
+        self.dialog.title("אשף יצירת הצעת מחיר - QuoreManager")
         
-        # Make window larger and responsive
+        # Initialize theme system for professional styling
+        from styling.theme_system import ModernThemeManager
+        from config.settings import SettingsManager
+        settings_manager = SettingsManager()
+        self.theme_manager = ModernThemeManager(settings_manager)
+        self.theme = self.theme_manager.get_current_theme()
+        
+        # Advanced responsive sizing - works on all desktop sizes
         screen_width = self.dialog.winfo_screenwidth()
         screen_height = self.dialog.winfo_screenheight()
         
-        # Use 90% of screen size but with min and max limits
-        window_width = min(1400, int(screen_width * 0.9))
-        window_height = min(900, int(screen_height * 0.9))
-        # Ensure minimum usability sizes
-        window_width = max(1000, window_width)
-        window_height = max(700, window_height)
+        # Professional responsive calculation
+        # Use 85% of screen size with smart min/max limits based on screen size
+        if screen_width >= 1920:  # 4K/Large monitors
+            window_width = min(1600, int(screen_width * 0.8))
+            window_height = min(1000, int(screen_height * 0.85))
+        elif screen_width >= 1440:  # Standard large monitors
+            window_width = min(1400, int(screen_width * 0.85))
+            window_height = min(900, int(screen_height * 0.85))
+        elif screen_width >= 1280:  # Standard monitors
+            window_width = min(1200, int(screen_width * 0.9))
+            window_height = min(800, int(screen_height * 0.85))
+        else:  # Small monitors/laptops
+            window_width = min(1000, int(screen_width * 0.95))
+            window_height = min(700, int(screen_height * 0.9))
+        
+        # Ensure minimum usability sizes regardless of screen
+        window_width = max(900, window_width)
+        window_height = max(650, window_height)
         
         self.dialog.geometry(f"{window_width}x{window_height}")
         self.dialog.resizable(True, True)
+        self.dialog.minsize(900, 650)  # Professional minimum size
         
-        # Center dialog on screen
+        # Perfect centering on any monitor
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
         self.dialog.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
+        # Professional window properties
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
+        self.dialog.attributes('-topmost', True)  # Ensure visibility
+        self.dialog.focus_force()
         
-        # Set clean white background
-        self.dialog.configure(fg_color="#FFFFFF")
+        # Professional theme colors
+        self.dialog.configure(fg_color=self.theme['bg_primary'])
         
-        # Main frame - make it scrollable with white background
+        # Professional main container with modern styling
         self.main_scrollable_frame = ctk.CTkScrollableFrame(
             self.dialog,
-            fg_color="#FFFFFF",
-            corner_radius=20,
-            border_width=1,
-            border_color="#E1E8F7"
+            fg_color=self.theme['bg_secondary'],
+            corner_radius=0,
+            scrollbar_button_color=self.theme['primary_light'],
+            scrollbar_button_hover_color=self.theme['primary']
         )
-        self.main_scrollable_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.main_scrollable_frame.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Progress bar
-        self.progress_frame = ctk.CTkFrame(
+        # Modern progress section with professional card design
+        self.progress_frame = self.theme_manager.create_modern_card(
             self.main_scrollable_frame,
-            fg_color="#FFFFFF",
-            corner_radius=15,
-            border_width=1,
-            border_color="#E1E8F7"
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_color=self.theme['border_light']
         )
-        self.progress_frame.pack(fill="x", pady=(20, 0))
+        self.progress_frame.pack(fill="x", padx=self.theme_manager.get_spacing('lg'), pady=(self.theme_manager.get_spacing('lg'), 0))
         
-        # Content area - now inside scrollable frame with white background
-        self.content_frame = ctk.CTkFrame(
-            self.main_scrollable_frame, 
-            fg_color="#FFFFFF",
-            corner_radius=20,
-            border_width=1,
-            border_color="#E1E8F7"
+        # Professional content area with modern card styling
+        self.content_frame = self.theme_manager.create_modern_card(
+            self.main_scrollable_frame,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_color=self.theme['border_light']
         )
-        self.content_frame.pack(fill="both", expand=True, pady=20)
+        self.content_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('lg'))
         
-        # Navigation buttons - fixed at bottom of dialog (not scrollable)
+        # Professional navigation with modern styling - fixed at bottom
         self.create_navigation(self.dialog)
         
-        # Show first step
+        # Show first step with modern progress
         self.show_step()
         
-        # No auto-save - only manual save as draft
+        # Professional window icon
+        try:
+            icon_path = self.theme_manager.get_icon_path()
+            self.dialog.iconbitmap(icon_path)
+        except:
+            pass  # Fallback gracefully if icon not found
     
-    def create_progress_bar(self, parent):
-        """Create progress bar showing current step"""
-        self.progress_frame = ctk.CTkFrame(parent)
-        self.progress_frame.pack(fill="x", pady=(20, 0))
+    def create_progress_bar(self):
+        """Update progress bar with modern professional design"""
+        # Clear existing progress
+        for widget in self.progress_frame.winfo_children():
+            widget.destroy()
         
-        # Step indicators will be created in show_step
+        # Professional progress container
+        progress_container = ctk.CTkFrame(self.progress_frame, fg_color="transparent")
+        progress_container.pack(pady=self.theme_manager.get_spacing('lg'))
         
+        # Modern step names with Hebrew text
+        step_names = ["בחירת לקוח", "בחירת פריטים", "הנחות ומחירים", "סיכום ושמירה"]
+        
+        # Professional step indicators layout
+        steps_layout = ctk.CTkFrame(progress_container, fg_color="transparent")
+        steps_layout.pack()
+        
+        for i, step_name in enumerate(step_names, 1):
+            step_container = ctk.CTkFrame(steps_layout, fg_color="transparent")
+            step_container.pack(side="right", padx=self.theme_manager.get_spacing('lg'))
+            
+            # Professional step states with theme colors
+            is_current = i == self.current_step
+            is_completed = i < self.current_step
+            
+            if is_current:
+                circle_color = self.theme['primary']
+                text_color = self.theme['bg_primary']
+                name_color = self.theme['text_primary']
+                weight = "bold"
+            elif is_completed:
+                circle_color = self.theme['primary_dark']
+                text_color = self.theme['bg_primary']
+                name_color = self.theme['text_secondary']
+                weight = "normal"
+            else:
+                circle_color = self.theme['border']
+                text_color = self.theme['text_muted']
+                name_color = self.theme['text_muted']
+                weight = "normal"
+            
+            # Modern step circle with professional styling
+            step_circle = ctk.CTkLabel(
+                step_container,
+                text=str(i),
+                width=50,
+                height=50,
+                font=self.theme_manager.create_ctk_font('card_title'),
+                fg_color=circle_color,
+                text_color=text_color,
+                corner_radius=25
+            )
+            step_circle.pack()
+            
+            # Professional step name with proper typography
+            name_label = ctk.CTkLabel(
+                step_container,
+                text=step_name,
+                font=ctk.CTkFont(family="Assistant", size=13, weight=weight),
+                text_color=name_color
+            )
+            name_label.pack(pady=(self.theme_manager.get_spacing('sm'), 0))
+    
     def update_progress_bar(self):
         """Update progress bar for current step"""
         # Clear existing progress
@@ -191,89 +273,78 @@ class QuoteWizard:
             name_label.pack(pady=(8, 0))
     
     def create_navigation(self, parent):
-        """Create navigation buttons"""
-        # Create a fixed navigation frame at the bottom
+        """Create professional navigation with modern button styling"""
+        # Professional fixed navigation frame at the bottom
         nav_container = ctk.CTkFrame(parent, fg_color="transparent", height=90)
-        nav_container.pack(side="bottom", fill="x", padx=25, pady=15)
+        nav_container.pack(side="bottom", fill="x", padx=self.theme_manager.get_spacing('lg'), pady=self.theme_manager.get_spacing('md'))
         nav_container.pack_propagate(False)
         
-        nav_frame = ctk.CTkFrame(
-            nav_container, 
-            fg_color="#FDFDFE",
-            corner_radius=15,
-            border_width=1,
-            border_color="#E1E8F7"
+        # Modern navigation card with professional styling
+        nav_frame = self.theme_manager.create_modern_card(
+            nav_container,
+            fg_color=self.theme['bg_card'],
+            corner_radius=12,
+            border_color=self.theme['border_light']
         )
-        nav_frame.pack(fill="both", expand=True, padx=15, pady=8)
+        nav_frame.pack(fill="both", expand=True, padx=self.theme_manager.get_spacing('sm'), pady=self.theme_manager.get_spacing('xs'))
         
-        # Button container
+        # Professional button container
         button_frame = ctk.CTkFrame(nav_frame, fg_color="transparent")
-        button_frame.pack(fill="x", padx=25, pady=18)
+        button_frame.pack(fill="x", padx=self.theme_manager.get_spacing('xl'), pady=self.theme_manager.get_spacing('lg'))
         
-        # Cancel button
-        cancel_button = ctk.CTkButton(
+        # Professional Cancel button
+        cancel_button = self.theme_manager.create_modern_button(
             button_frame,
             text="ביטול",
-            font=ctk.CTkFont(family="Assistant", size=16),
-            height=50,
+            style="outline",
+            size="medium",
             width=100,
-            fg_color="#9CA3AF",
-            hover_color="#6B7280",
-            corner_radius=12,
             command=self.cancel_wizard
         )
         cancel_button.pack(side="left")
         
-        # Save draft button
-        save_draft_button = ctk.CTkButton(
+        # Professional Save Draft button
+        save_draft_button = self.theme_manager.create_modern_button(
             button_frame,
             text="שמור כטיוטה",
-            font=ctk.CTkFont(family="Assistant", size=16),
-            height=50,
+            style="secondary",
+            size="medium",
             width=130,
-            fg_color="#F59E0B",
-            hover_color="#D97706",
-            corner_radius=12,
             command=self.save_draft
         )
-        save_draft_button.pack(side="left", padx=(10, 0))
+        save_draft_button.pack(side="left", padx=(self.theme_manager.get_spacing('sm'), 0))
         
-        # Step info in center
+        # Professional step info in center
         step_info_frame = ctk.CTkFrame(button_frame, fg_color="transparent")
-        step_info_frame.pack(side="left", fill="x", expand=True, padx=20)
+        step_info_frame.pack(side="left", fill="x", expand=True, padx=self.theme_manager.get_spacing('lg'))
         
+        # Modern step indicator with professional typography
         self.step_info_label = ctk.CTkLabel(
             step_info_frame,
-            text="",
-            font=ctk.CTkFont(family="Assistant", size=15),
-            text_color="#6B7280"
+            text=f"שלב {self.current_step} מתוך {self.max_steps}",
+            font=self.theme_manager.create_ctk_font('body'),
+            text_color=self.theme['text_secondary']
         )
-        self.step_info_label.pack(expand=True)
+        self.step_info_label.pack()
         
-        # Previous button
-        self.prev_button = ctk.CTkButton(
+        # Professional Previous button
+        self.prev_button = self.theme_manager.create_modern_button(
             button_frame,
             text="◀ הקודם",
-            font=ctk.CTkFont(family="Assistant", size=16),
-            height=50,
+            style="secondary",
+            size="medium",
             width=100,
-            fg_color="#9CA3AF",
-            hover_color="#4B5563",
-            corner_radius=12,
             command=self.prev_step
         )
-        self.prev_button.pack(side="right", padx=(10, 0))
+        self.prev_button.pack(side="right", padx=(0, self.theme_manager.get_spacing('sm')))
         
-        # Next/Finish button
-        self.next_button = ctk.CTkButton(
+        # Professional Next/Finish button
+        self.next_button = self.theme_manager.create_modern_button(
             button_frame,
             text="הבא ▶",
-            font=ctk.CTkFont(family="Assistant", size=16, weight="bold"),
-            height=50,
+            style="primary",
+            size="medium",
             width=100,
-            fg_color="#3B82F6",
-            hover_color="#1E40AF",
-            corner_radius=12,
             command=self.next_step
         )
         self.next_button.pack(side="right")
