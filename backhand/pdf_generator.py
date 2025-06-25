@@ -302,10 +302,47 @@ def create_professional_pdf(customer_data, items_df, calculations, settings_mana
     legal_text = legal_text.replace('\\n', '\n')
     c.setFont(PDF_FONT, 10)
     lines = legal_text.split('\n')
+    
+    # Define minimum space needed for footer and signature area
+    footer_space = 60 * mm  # Space for footer + signature + margin
+    line_height = 6 * mm
+    
     for line in lines:
-        processed_line = rtl(line)
-        c.drawRightString(W - m, text_y, processed_line)
-        text_y -= 6 * mm
+        # Check if we have enough space for this line plus footer
+        if text_y - line_height < footer_space:
+            # Need a new page
+            draw_footer(c, page_num, pages_total)
+            c.showPage()
+            page_num += 1
+            # Update total pages count for accurate page numbering
+            pages_total = max(pages_total, page_num)
+            draw_header(c)
+            draw_watermark(c)
+            c.setFillColorRGB(0, 0, 0)
+            text_y = H - 60*mm
+            # Continue with "תנאים והגבלות" header on new page if needed
+            if line.strip():  # Only if we have content to show
+                draw_rtl(c, W - m, text_y, "תנאים והגבלות (המשך)", PDF_BOLD, 16)
+                text_y -= 15*mm
+                c.setFont(PDF_FONT, 10)
+        
+        if line.strip():  # Only draw non-empty lines
+            processed_line = rtl(line)
+            c.drawRightString(W - m, text_y, processed_line)
+        text_y -= line_height
+    
+    # Ensure we have enough space for signature area
+    if text_y - 40*mm < 20*mm:  # Not enough space for signature
+        draw_footer(c, page_num, pages_total)
+        c.showPage()
+        page_num += 1
+        pages_total = max(pages_total, page_num)
+        draw_header(c)
+        draw_watermark(c)
+        c.setFillColorRGB(0, 0, 0)
+        text_y = H - 60*mm
+    
+    # Draw signature line
     sig_y = text_y - 40*mm
     c.line(W - m - 80*mm, sig_y - 2*mm, W - m, sig_y - 2*mm)
     draw_rtl(c, W - m, sig_y, "חתימת הלקוח:")
